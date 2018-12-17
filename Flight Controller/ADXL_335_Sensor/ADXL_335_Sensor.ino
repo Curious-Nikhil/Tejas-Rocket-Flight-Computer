@@ -35,14 +35,26 @@ void loop() {
 
   xv = (val_x/1024*ADC_ref - zero_x)/sen_x;
   yv = (val_z/1024*ADC_ref - zero_y)/sen_y;
+  zv = (val_y/1024*ADC_ref - zero_z)/sen_z;
+
+  angle_x = atan2(-yv, -zv)*57.2957795+180;
+  angle_y = atan2(-xv, -zv)*57.2957795+180;
   angle_z = atan2(-yv, -xv)*57.2957795+180;
   
   Serial.print(xv);
   Serial.print("\t");
-  
+
+  Serial.print("X ");
+  Serial.print(angle_x);
+  Serial.print("\t");
+  Serial.print("Y ");
+  Serial.print(angle_y);
+  Serial.print("\t");
+  Serial.print("Z ");
   Serial.print(angle_z);
   Serial.print("\n");
-  delay(10);
+  
+  delay(1000);
 
 }
 
