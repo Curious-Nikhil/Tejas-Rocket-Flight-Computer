@@ -32,6 +32,7 @@
 
 void setup()
 {
+  //Wire.setClock(400000); not helping the cause //https://stackoverflow.com/a/52044698/7903751
   Wire.begin();
 
   Serial.begin(9600);
