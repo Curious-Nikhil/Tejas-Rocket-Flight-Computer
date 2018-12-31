@@ -57,7 +57,7 @@ void loop()
         Serial.print(rx_str);
         result = rx_str.toInt(); //converts char to int! :D life is simple with C 
 
-        Yservo.write(result + 90);
+        Yservo.write(result);
         Xservo.write(result);
         
         Serial.println("");
