@@ -4,7 +4,7 @@ Into Robotics
  
 #include <Servo.h>  //add '<' and '>' before and after servo.h
  
-int servoPin = 9;
+int servoPin = 10;
  
 Servo servo;  
  

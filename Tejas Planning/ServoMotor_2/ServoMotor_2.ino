@@ -4,16 +4,19 @@ Into Robotics
  
 #include <Servo.h>  //add '<' and '>' before and after servo.h
  
-int servoPin = 9;
+int servoPin = 10;
  
-Servo servo;  
+Servo Xservo;  
+Servo Yservo;  
+
  
 int servoAngle = 0;   // servo position in degrees
  
 void setup()
 {
   Serial.begin(9600);  
-  servo.attach(servoPin);
+  Yservo.attach(servoPin);
+  Xservo.attach(8);
   Serial.println("Enter Angle");
 
 }
@@ -54,7 +57,8 @@ void loop()
         Serial.print(rx_str);
         result = rx_str.toInt(); //converts char to int! :D life is simple with C 
 
-        servo.write(result);
+        Yservo.write(result + 90);
+        Xservo.write(result);
         
         Serial.println("");
         Serial.println("Enter Angle");
