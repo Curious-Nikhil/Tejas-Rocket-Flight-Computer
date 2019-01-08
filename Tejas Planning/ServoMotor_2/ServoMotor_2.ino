@@ -1,7 +1,8 @@
 /*
 Into Robotics
 */
- 
+
+//Add two two inputs!
 #include <Servo.h>  //add '<' and '>' before and after servo.h
  
 int servoPin = 10;
@@ -57,7 +58,7 @@ void loop()
         Serial.print(rx_str);
         result = rx_str.toInt(); //converts char to int! :D life is simple with C 
 
-        Yservo.write(result);
+        Yservo.write(result/2); //offset
         Xservo.write(result);
         
         Serial.println("");
