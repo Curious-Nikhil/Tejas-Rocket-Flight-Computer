@@ -41,7 +41,6 @@ void loop()
 //   delay(5000);
 
 //https://startingelectronics.org/software/arduino/learn-to-program-course/19-serial-input/
-
   if (Serial.available() > 0) {    // is a character available?
     rx_byte = Serial.read();       // get the character
     
@@ -57,12 +56,10 @@ void loop()
         Serial.print("Angle: ");
         Serial.print(rx_str);
         result = rx_str.toInt(); //converts char to int! :D life is simple with C 
-
-        Yservo.write(result/2); //offset
         Xservo.write(result);
         
         Serial.println("");
-        Serial.println("Enter Angle");
+        Serial.println("Enter Angle for X");
       }
       not_number = false;         // reset flag
       rx_str = "";                // clear the string for reuse
