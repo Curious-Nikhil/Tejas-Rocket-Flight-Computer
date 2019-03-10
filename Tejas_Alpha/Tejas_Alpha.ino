@@ -1,6 +1,6 @@
 /*Tejas Alpha - @Nikhil Mishra
- * Tejas is a autonomos rocket flight computer that runs on in expensive hardware, 
- * which can do realtime thrust vector control (gimbal control)
+ * Tejas is a rocket controller computer  
+ * Tejas controls the pitch and the roll of the rocket
  */
 void setup() {
   //runs only onces
