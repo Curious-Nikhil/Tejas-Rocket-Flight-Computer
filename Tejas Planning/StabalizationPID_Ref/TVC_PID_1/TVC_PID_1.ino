@@ -1,6 +1,5 @@
 //https://github.com/bdureau/RocketMotorPIDGimbal
 
-
 /*
    Description: Model Rocket motor gimbal using 2 servo. This is yet again another attempt to fly a model rocket without fins using long burn motors.
                 It is using the Arduino PID controler to move a rocket motor.
@@ -85,7 +84,9 @@ PID myPIDY(&InputY, &OutputY, &SetpointY, KpY, KiY, KdY, DIRECT);
 //calibration stuff
 //Change those 3 variables if you want to fine tune the skecth to your needs.
 int buffersize = 200;   //Amount of readings used to average, make it higher to get more precision but sketch will be slower  (default:1000)
+
 int acel_deadzone = 8;   //Acelerometer error allowed, make it lower to get more precision, but sketch may not converge  (default:8)
+
 int giro_deadzone = 1;   //Giro error allowed, make it lower to get more precision, but sketch may not converge  (default:1)
 
 int16_t ax, ay, az, gx, gy, gz;
