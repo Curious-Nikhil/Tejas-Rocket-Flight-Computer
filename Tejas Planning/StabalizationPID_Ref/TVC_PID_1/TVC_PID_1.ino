@@ -164,6 +164,7 @@ void initialize() {
   mpu.setXGyroOffset(gx_offset);
   mpu.setYGyroOffset(gy_offset);
   mpu.setZGyroOffset(gz_offset);
+  
   //turn the PID on
   //servo's can go from 60 degree's to 120 degree so set the angle correction to + - 30 degrees max
   myPIDX.SetOutputLimits(-30, 30);

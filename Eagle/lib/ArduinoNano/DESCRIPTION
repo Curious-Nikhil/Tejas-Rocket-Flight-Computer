@@ -1,0 +1,14 @@
+<b>Arduino Nano EAGLE Library v0.1 - Jannuary 22, 2.016</b>
+
+<p>This library was created by Esp. Marco-Luis SALCEDO TOVAR, Please report any errors or suggestions to: <i>yv1hx@cantv.net</i></p>
+
+<p>Released under the <b>Creative Commons Attribution-ShareAlike 2.5 Generic (CC BY-SA 2.5)</b> licence terms.<br></p>
+
+<p>You are free to:<br>
+<b>Share</b> — copy and redistribute the material in any medium or format<br>
+<b>Adapt</b> — remix, transform, and build upon the material for any purpose, even commercially.</p>
+
+<p>The licensor cannot revoke these freedoms as long as you follow the license terms.</p>
+<p>You can download a full copy of this license from <a href="http://creativecommons.org/licenses/by-sa/2.5/ ">here</a>.</p>
+
+
