@@ -40,16 +40,17 @@ void setup() {
 }
   
 void loop() {
-//    Serial.print("Temperature = ");
-//    Serial.print(bme.readTemperature());
-//    Serial.println(" *C");
-//    
-//    Serial.print("Pressure = ");
-//    Serial.print(bme.readPressure());
-//    Serial.println(" Pa");
+  
+    Serial.print("Temperature = ");
+    Serial.print(bme.readTemperature());
+    Serial.println(" *C");
+    
+    Serial.print("Pressure = ");
+    Serial.print(bme.readPressure());
+    Serial.println(" Pa");
 
     Serial.print("Approx altitude = ");
-    Serial.print(bme.readAltitude(1013.25)); // this should be adjusted to your local forcase
+    Serial.print(bme.readAltitude(1000)); // this should be adjusted to your local forcase
     Serial.println(" m");
     
     Serial.println();

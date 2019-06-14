@@ -3,7 +3,7 @@
 //==============================
 
 /*Tejas Alpha - @Nikhil Mishra
- * curious-nikhil.github.io
+ * https://curious-nikhil.github.io/
  * Tejas is a rocket computer  
  * Tejas controls the pitch and the roll of the rocket
  */  
@@ -19,9 +19,15 @@
 #include <MPU6050_6Axis_MotionApps20.h> // Gyroscope and axcelerometer libraries
 #include <Wire.h>
 
+//SD Card Libraries
+//#include <SPI.h>
+//#include <SD.h>
+
+
 #define INTERRUPT_PIN 2  // use pin 2 on Arduino Uno & most boards
 #define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
 #define green 12// Green LED
+
 
 bool blinkState = true;
 float mpuPitch = 0;
@@ -81,8 +87,6 @@ void dmpDataReady() {
 
 void setup() {
 
-  Serial.println(F("Tejas..... Alpha!"));
-
   //Attach the servos
   ServoX.attach(8);
   ServoY.attach(10);
@@ -104,7 +108,6 @@ void setup() {
   // configure LED for output
   pinMode(LED_PIN, OUTPUT);
   pinMode(green, OUTPUT);
-
   initialize();
   
 }
@@ -122,8 +125,8 @@ void initialize() {
 
   pinMode(INTERRUPT_PIN, INPUT);
 
-
    // initialize device
+  Serial.println(F("Tejas..... Alpha!"));
   Serial.println(F("Initializing MPU 6050 device..."));
   mpu.initialize();
   pinMode(INTERRUPT_PIN, INPUT);
@@ -131,6 +134,12 @@ void initialize() {
   // verify connection
   Serial.println(F("Testing device connections..."));
   Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+      
+    // wait for ready
+    Serial.println(F("\nSend any character to Begin Tejas Demo! :D "));
+    while (Serial.available() && Serial.read()); // empty buffer
+    while (!Serial.available());                 // wait for data
+    while (Serial.available() && Serial.read()); // empty buffer again
 
   // load and configure the DMP
   Serial.println(F("Initializing DMP"));
@@ -184,7 +193,7 @@ void initialize() {
   }
 
  //Initialization Done Signal!
- green_fn();
+ //green_fn();
 }
 
 // ================================================================
@@ -195,6 +204,11 @@ void loop() {
   tejas();
 
 }
+
+// ================================================================
+// ===                   TEJAS FUNCTION                         === 
+// ===               DMP + PID + SERVO WRITE                    ===
+// ================================================================
 
 void tejas(void) {
   //DMP Program

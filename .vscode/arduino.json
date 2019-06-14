@@ -1,5 +1,6 @@
 {
     "board": "arduino:avr:uno",
-    "port": "COM1",
-    "programmer": "ArduinoISP"
+    "port": "COM6",
+    "programmer": "ArduinoISP",
+    "sketch": "Tejas Planning\\BMP_280\\i2c_BMP280\\i2c_BMP280.ino"
 }
