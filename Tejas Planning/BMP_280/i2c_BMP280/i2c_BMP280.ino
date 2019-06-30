@@ -21,7 +21,7 @@ File dataFile;
 
 void setup()
 {
-    Serial.begin(115200);
+    Serial.begin(38400);
 
     Serial.print("Probe BMP280: ");
     if (bmp280.initialize()) Serial.println("Sensor found");
