@@ -41,6 +41,7 @@
 
 #define INTERRUPT_PIN 2  // use pin 2 on Arduino Uno & most boards
 #define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
+#define RLED 6// Green LED
 #define GLED 7// Green LED
 
 
@@ -146,7 +147,7 @@ void setup() {
     // configure LED for output
     //pinMode(LED_PIN, OUTPUT);
     pinMode(GLED, OUTPUT);
-  
+    pinMode(RLED, OUTPUT);
     //Initialize SD Module
     initializeSD();
   
@@ -155,6 +156,7 @@ void setup() {
   
     //Initialize Baromter
     initializeBMP();
+
 }
 
 // ================================================================
@@ -219,8 +221,10 @@ void initializeSD(){
       Serial.println("File Created and File Closed");
 
     } else {
-      Serial.println("Error opening file.txt");
+      Serial.println("Error opening file");
+      digitalWrite(RLED, HIGH);
       while(1);
+
     }
 
 }
@@ -341,10 +345,11 @@ void initializeDMP() {
 // ================================================================
 void loop() {
   //altimeter();
-//  tejas_move();
+  //tejas_move();
 
   //Data logging
   //writeSD(meters, pascal, est_alt, mpuPitch, mpuRoll, mpuYaw, OutputX, OutputY);
+
 }
 
 // ================================================================
