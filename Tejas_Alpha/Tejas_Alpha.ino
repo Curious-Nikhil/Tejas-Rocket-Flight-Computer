@@ -108,7 +108,7 @@ float pascal;
 float est_alt;
 bool err = false;
 String filename; 
-File dataFile;
+File myFile;
 
 BMP280 bmp280;
 SimpleKalmanFilter pressureKalmanFilter(1, 1, 0.01);
@@ -122,6 +122,7 @@ volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin h
 
 // ================================================================
 // ===               THE SETUP FUNCTION                       ===
+// ================================================================
 void setup() {
 
   Serial.begin(38400);
@@ -152,71 +153,13 @@ void setup() {
     pinMode(RLED, OUTPUT);
 
     //Initialize SD Module
-    //initializeSD();
+      initializeSD();
   
     //Initialize Gyroscope and Servo
     //initializeDMP();
   
     //Initialize Baromter
     //initializeBMP();
-
-//------------------------------------------------------------------------------//
-     Serial.print("Initializing SD card...");
-
-  if (!SD.begin(4)) {
-    Serial.println("initialization failed!");
-    while (1);
-  }
-  Serial.println("initialization done.");
-
-  if (SD.exists("example.txt")) {
-    Serial.println("example.txt exists.");
-  } else {
-    Serial.println("example.txt doesn't exist.");
-  }
-
-  // open a new file and immediately close it:
-  Serial.println("Creating example.txt...");
-  dataFile = SD.open("dlog.txt", FILE_WRITE);
-  if (dataFile) {
-      //Print Date in File
-      dataFile.print("V ");
-      dataFile.println(VERSION);
-      
-      dataFile.print("Date: ");
-      dataFile.print(DAY);
-      dataFile.print(",");      
-      dataFile.print(MONTH);
-      dataFile.print(",");
-      dataFile.println(YEAR);
-  
-      //Print Header Files  - - meters, pascal, est_alt, mpuPitch, mpuRoll, mpuYaw, OutputX, OutputY
-
-      dataFile.print("Height");
-      dataFile.print(",");
-      dataFile.print("Pascal");
-      dataFile.print(",");
-      dataFile.print("Kalman_Height");
-      dataFile.print(",");
-      dataFile.print("mpuPitch");
-      dataFile.print(",");
-      dataFile.print("mpuRoll");
-      dataFile.print(",");
-      dataFile.print("mpuYaw");
-      dataFile.print(",");
-      dataFile.print("OutputX");
-      dataFile.print(",");
-      dataFile.println("OutputY");
- 
-      dataFile.close();
-      Serial.println("File Created and File Closed");
-
-  } else {
-    dataFile.print("Why is luck so bad?");
-    while(1);
-  }
-
-    
 }
 
 // ================================================================
@@ -227,67 +170,70 @@ void setup() {
 // ===               SD CARD Begin                       ===
 // ================================================================
 
-void initializeSD(){
-  // see if the card is present and can be initialized:
-    if (!SD.begin(4)) {
-      Serial.println("Card failed, or not present");
-      err = true;
-      // don't do anything more:
-      while (1);
-    }
-    Serial.println("card initialized.");
-
-    //Create a file with new name
-    if (!loadSDFile()) {
-      Serial.println("Failed to create file");
-      err = true;
-      while(1);
-    }
-    else {
-      Serial.println("File name created!");
-    }
-
-    dataFile = SD.open("test.txt", FILE_WRITE);
-    
-    if (dataFile) {      
-      //Print Date in File
-      dataFile.print("V ");
-      dataFile.println(VERSION);
-      
-      dataFile.println("Date: ");
-      dataFile.print(DAY);
-      dataFile.print(MONTH);
-      dataFile.println(YEAR);
+void initializeSD() {
   
-      //Print Header Files  - - meters, pascal, est_alt, mpuPitch, mpuRoll, mpuYaw, OutputX, OutputY
+  Serial.print("Initializing SD card...");
+  
+  if (!SD.begin(4)) {
+  Serial.println("initialization failed!");
+  while (1);
+  }
+  Serial.println("initialization done.");
+  
+  
+  Serial.println("No File present");
+  // open a new file and immediately close it:
+  Serial.println("Creating File...");
 
-      dataFile.print("Height");
-      dataFile.print(",");
-      dataFile.print("Pascal");
-      dataFile.print(",");
-      dataFile.print("Kalman_Height");
-      dataFile.print(",");
-      dataFile.print("mpuPitch");
-      dataFile.print(",");
-      dataFile.print("mpuRoll");
-      dataFile.print(",");
-      dataFile.print("mpuYaw");
-      dataFile.print(",");
-      dataFile.print("OutputX");
-      dataFile.print(",");
-      dataFile.println("OutputY");
- 
-      dataFile.close();
-      Serial.println("File Created and File Closed");
-
-    } else {
-      #ifdef SERIAL_DEBUG
-        Serial.println("Error opening file");
-      #endif
-      digitalWrite(RLED, HIGH);
-      while(1);
+   //Create a file with new name
+    if (!loadSDFile()) {
+    Serial.println("Failed to create file");
+    while(1);
     }
+     else {
+    Serial.println("File name created!");
+    }
+
+  myFile = SD.open("DLOG.txt", FILE_WRITE);
+  
+  if (myFile) {
+    //Print Date in File
+    myFile.print("V ");
+    myFile.println(VERSION);
     
+    myFile.print("Date: ");
+    myFile.print(DAY);
+    myFile.print(",");      
+    myFile.print(MONTH);
+    myFile.print(",");
+    myFile.println(YEAR);
+  
+    //Print Header Files  - - meters, pascal, est_alt, mpuPitch, mpuRoll, mpuYaw, OutputX, OutputY
+  
+    myFile.print("Height");
+    myFile.print(",");
+    myFile.print("Pascal");
+    myFile.print(",");
+    myFile.print("Kalman_Height");
+    myFile.print(",");
+    myFile.print("mpuPitch");
+    myFile.print(",");
+    myFile.print("mpuRoll");
+    myFile.print(",");
+    myFile.print("mpuYaw");
+    myFile.print(",");
+    myFile.print("OutputX");
+    myFile.print(",");
+    myFile.println("OutputY");
+  
+    myFile.close();
+    Serial.println("File Created and File Closed");
+  
+     } else {
+       Serial.print("Error while opening file");
+       RED();
+       while(1);
+     }
 }
 
 // ================================================================
@@ -525,9 +471,9 @@ boolean loadSDFile() {
     filename = (String)i + "dlog.txt";
 
     if (!SD.exists(filename)) {
-      dataFile = SD.open(filename, FILE_WRITE);
+      myFile = SD.open(filename, FILE_WRITE);
       delay(10);
-      dataFile.close();
+      myFile.close();
       file = true;
     }
     i++;
@@ -538,9 +484,9 @@ boolean loadSDFile() {
 // meters, pascal, est_alt, mpuPitch, mpuRoll, mpuYaw, OutputX, OutputY
 void writeSD(float meters, float pascal, float est_alt, float mpuPitch, float mpuRoll, float mpuYaw, float OutputX, float OutputY) {
 
-  dataFile = SD.open(filename, FILE_WRITE);
+  myFile = SD.open(filename, FILE_WRITE);
 
-  if (dataFile) {
+  if (myFile) {
     //Serial Prints
 
     #ifdef SERIAL_DEBUG
@@ -562,22 +508,22 @@ void writeSD(float meters, float pascal, float est_alt, float mpuPitch, float mp
     #endif
 
     //Writing in SD Card!
-    dataFile.print(meters);   
-    dataFile.print(",");
-    dataFile.print(pascal);
-    dataFile.print(",");
-    dataFile.print(est_alt);
-    dataFile.print(mpuPitch);   
-    dataFile.print(",");
-    dataFile.print(mpuRoll);
-    dataFile.print(",");
-    dataFile.print(mpuYaw);
-    dataFile.print(",");
-    dataFile.print(OutputX);
-    dataFile.print(",");
-    dataFile.println(OutputY);
+    myFile.print(meters);   
+    myFile.print(",");
+    myFile.print(pascal);
+    myFile.print(",");
+    myFile.print(est_alt);
+    myFile.print(mpuPitch);   
+    myFile.print(",");
+    myFile.print(mpuRoll);
+    myFile.print(",");
+    myFile.print(mpuYaw);
+    myFile.print(",");
+    myFile.print(OutputX);
+    myFile.print(",");
+    myFile.println(OutputY);
     
-    dataFile.close();
+    myFile.close();
   
     delay(100);
 
@@ -594,3 +540,11 @@ void writeSD(float meters, float pascal, float est_alt, float mpuPitch, float mp
 // ================================================================
 // ===                  MISC FUNCTIONS                          ===
 // ================================================================
+
+void RED() {
+  digitalWrite(RLED, HIGH);
+}
+
+void GRE() {
+  digitalWrite(GLED, HIGH);
+}
