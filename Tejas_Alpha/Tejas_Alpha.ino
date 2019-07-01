@@ -120,7 +120,8 @@ volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin h
       mpuInterrupt = true;
   }
 
-
+// ================================================================
+// ===               THE SETUP FUNCTION                       ===
 void setup() {
 
   Serial.begin(38400);
@@ -149,19 +150,77 @@ void setup() {
     //pinMode(LED_PIN, OUTPUT);
     pinMode(GLED, OUTPUT);
     pinMode(RLED, OUTPUT);
+
     //Initialize SD Module
-    initializeSD();
+    //initializeSD();
   
     //Initialize Gyroscope and Servo
     //initializeDMP();
   
     //Initialize Baromter
-    initializeBMP();
+    //initializeBMP();
 
+//------------------------------------------------------------------------------//
+     Serial.print("Initializing SD card...");
+
+  if (!SD.begin(4)) {
+    Serial.println("initialization failed!");
+    while (1);
+  }
+  Serial.println("initialization done.");
+
+  if (SD.exists("example.txt")) {
+    Serial.println("example.txt exists.");
+  } else {
+    Serial.println("example.txt doesn't exist.");
+  }
+
+  // open a new file and immediately close it:
+  Serial.println("Creating example.txt...");
+  dataFile = SD.open("dlog.txt", FILE_WRITE);
+  if (dataFile) {
+      //Print Date in File
+      dataFile.print("V ");
+      dataFile.println(VERSION);
+      
+      dataFile.print("Date: ");
+      dataFile.print(DAY);
+      dataFile.print(",");      
+      dataFile.print(MONTH);
+      dataFile.print(",");
+      dataFile.println(YEAR);
+  
+      //Print Header Files  - - meters, pascal, est_alt, mpuPitch, mpuRoll, mpuYaw, OutputX, OutputY
+
+      dataFile.print("Height");
+      dataFile.print(",");
+      dataFile.print("Pascal");
+      dataFile.print(",");
+      dataFile.print("Kalman_Height");
+      dataFile.print(",");
+      dataFile.print("mpuPitch");
+      dataFile.print(",");
+      dataFile.print("mpuRoll");
+      dataFile.print(",");
+      dataFile.print("mpuYaw");
+      dataFile.print(",");
+      dataFile.print("OutputX");
+      dataFile.print(",");
+      dataFile.println("OutputY");
+ 
+      dataFile.close();
+      Serial.println("File Created and File Closed");
+
+  } else {
+    dataFile.print("Why is luck so bad?");
+    while(1);
+  }
+
+    
 }
 
 // ================================================================
-// ===               INITIALIZE FUNCTION                       ===
+// ===                INITIALIZE FUNCTION                       ===
 // ================================================================
 
 // ================================================================
@@ -188,7 +247,7 @@ void initializeSD(){
       Serial.println("File name created!");
     }
 
-    dataFile = SD.open(filename, FILE_WRITE);
+    dataFile = SD.open("test.txt", FILE_WRITE);
     
     if (dataFile) {      
       //Print Date in File
@@ -222,12 +281,13 @@ void initializeSD(){
       Serial.println("File Created and File Closed");
 
     } else {
-      Serial.println("Error opening file");
+      #ifdef SERIAL_DEBUG
+        Serial.println("Error opening file");
+      #endif
       digitalWrite(RLED, HIGH);
       while(1);
-
     }
-
+    
 }
 
 // ================================================================
@@ -417,7 +477,8 @@ void tejas_move(void) {
             ServoX.write(-mpuPitch + 90);
             ServoY.write(mpuRoll + 90);
         #endif
-        
+
+        #ifdef SERIAL_DEBUG
           Serial.print(mpuPitch);
           Serial.print("    ");
           Serial.print(mpuRoll);
@@ -425,7 +486,7 @@ void tejas_move(void) {
           Serial.print(OutputX);
           Serial.print("    ");
           Serial.println(OutputY);
-
+        #endif
           
   }
 }
@@ -461,7 +522,7 @@ boolean loadSDFile() {
   boolean file = false;
 
   while(!file && i < 1024) {
-    filename = (String)i + "datalog.txt";
+    filename = (String)i + "dlog.txt";
 
     if (!SD.exists(filename)) {
       dataFile = SD.open(filename, FILE_WRITE);
@@ -469,7 +530,6 @@ boolean loadSDFile() {
       dataFile.close();
       file = true;
     }
-    //else file = false
     i++;
   }
 
