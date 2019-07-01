@@ -18,6 +18,7 @@
 
 #define PID_MOD
 //#define SERVO_MOD
+#define SERIAL_DEBUG
 
 
 // =============================
@@ -115,9 +116,9 @@ SimpleKalmanFilter pressureKalmanFilter(1, 1, 0.01);
 
 //INTERRUPT DETECTION ROUTINE            
 volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
-void dmpDataReady() {
-    mpuInterrupt = true;
-}
+  void dmpDataReady() {
+      mpuInterrupt = true;
+  }
 
 
 void setup() {
@@ -395,37 +396,37 @@ void tejas_move(void) {
         // (this lets us immediately read more without waiting for an interrupt)
         fifoCount -= packetSize;
 
-         //MPU Computation
-          mpu.dmpGetQuaternion(&q, fifoBuffer);
-          mpu.dmpGetGravity(&gravity, &q);
-          mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-          mpuPitch = ypr[PITCH] * 180 / M_PI;
-          mpuRoll = ypr[ROLL] * 180 / M_PI;
-          mpuYaw  = ypr[YAW] * 180 / M_PI;
+        //MPU Computation
+        mpu.dmpGetQuaternion(&q, fifoBuffer);
+        mpu.dmpGetGravity(&gravity, &q);
+        mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+        mpuPitch = ypr[PITCH] * 180 / M_PI;
+        mpuRoll = ypr[ROLL] * 180 / M_PI;
+        mpuYaw  = ypr[YAW] * 180 / M_PI;
 
-            // blink LED to indicate activity
-            blinkState = !blinkState;
-            digitalWrite(GLED, blinkState);
-            mpu.resetFIFO();
-            InputX = mpuPitch;
-            myPIDX.Compute();
-            InputY = mpuRoll;
-            myPIDY.Compute();
+        // blink LED to indicate activity
+        blinkState = !blinkState;
+        digitalWrite(GLED, blinkState);
+        mpu.resetFIFO();
+        InputX = mpuPitch;
+        myPIDX.Compute();
+        InputY = mpuRoll;
+        myPIDY.Compute();
 
-            #ifdef SERVO_MOD 
-               ServoX.write(-mpuPitch + 90);
-               ServoY.write(mpuRoll + 90);
-            #endif
-            
-              Serial.print(mpuPitch);
-              Serial.print("    ");
-              Serial.print(mpuRoll);
-              Serial.print("    ");
-              Serial.print(OutputX);
-              Serial.print("    ");
-              Serial.println(OutputY);
+        #ifdef SERVO_MOD 
+            ServoX.write(-mpuPitch + 90);
+            ServoY.write(mpuRoll + 90);
+        #endif
+        
+          Serial.print(mpuPitch);
+          Serial.print("    ");
+          Serial.print(mpuRoll);
+          Serial.print("    ");
+          Serial.print(OutputX);
+          Serial.print("    ");
+          Serial.println(OutputY);
 
-             // mpuPitch, mpuRoll, OutputX, OutputY
+          
   }
 }
 
@@ -481,22 +482,25 @@ void writeSD(float meters, float pascal, float est_alt, float mpuPitch, float mp
 
   if (dataFile) {
     //Serial Prints
-    Serial.print(meters);
-    Serial.print(",");
-    Serial.print(pascal);
-    Serial.print(",");
-    Serial.println(est_alt);
-    Serial.print(",");
-    Serial.print(mpuPitch);
-    Serial.print(",");
-    Serial.print(mpuRoll);
-    Serial.print(",");
-    Serial.print(mpuYaw);
-    Serial.print(",");  
-    Serial.println(OutputX);
-    Serial.print(",");
-    Serial.println(OutputY);  
-    
+
+    #ifdef SERIAL_DEBUG
+      Serial.print(meters);
+      Serial.print(",");
+      Serial.print(pascal);
+      Serial.print(",");
+      Serial.println(est_alt);
+      Serial.print(",");
+      Serial.print(mpuPitch);
+      Serial.print(",");
+      Serial.print(mpuRoll);
+      Serial.print(",");
+      Serial.print(mpuYaw);
+      Serial.print(",");  
+      Serial.println(OutputX);
+      Serial.print(",");
+      Serial.println(OutputY);  
+    #endif
+
     //Writing in SD Card!
     dataFile.print(meters);   
     dataFile.print(",");
@@ -518,7 +522,9 @@ void writeSD(float meters, float pascal, float est_alt, float mpuPitch, float mp
     delay(100);
 
   } else {
-    Serial.println("error Opening the txt file");
+    #ifdef SERIAL_DEBUG
+      Serial.println("error Opening the txt file");
+    #endif
     err = true;
     while(1);
   }
