@@ -44,14 +44,18 @@ void sdfn (){
     while (1);
   }
 
-   //Create a file with new name
-    if (!loadSDFile()) {
-      Serial.println("Failed to create file");
-      while(1);
+  // create a new file
+  char filename[] = "LOGGER00.txt";
+  for (uint8_t i = 0; i < 100; i++) {
+    filename[6] = i/10 + '0';
+    filename[7] = i%10 + '0';
+    if (! SD.exists(filename)) {
+      // only open a new file if it doesn't exist
+      myFile = SD.open(filename, FILE_WRITE); 
+      break;  // leave the loop!
     }
-    else {
-      Serial.println("File name created!");
-    }
+  }
+
 
   // open a new file and immediately close it:
   Serial.println("Creating example.txt...");
@@ -75,27 +79,6 @@ void sdfn (){
   }
 
 }
-
-//Create a new filename everytime.
-boolean loadSDFile() {
-  int i = 0;
-  boolean file = false;
-
-  while(!file && i < 1024) {
-    filename = (String)i + "dlog.txt";
-
-    if (!SD.exists(filename)) {
-      myFile  = SD.open(filename, FILE_WRITE);
-      delay(10);
-      myFile.close();
-      file = true;
-    }
-    i++;
-  }
-
-  return file;
-}
-
 
 //void initializeSD(){
 //  // see if the card is present and can be initialized:

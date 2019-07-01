@@ -179,23 +179,23 @@ void initializeSD() {
   while (1);
   }
   Serial.println("initialization done.");
-  
-  
-  Serial.println("No File present");
-  // open a new file and immediately close it:
-  Serial.println("Creating File...");
+ 
 
-   //Create a file with new name
-    if (!loadSDFile()) {
-    Serial.println("Failed to create file");
-    while(1);
+    // create a new file
+  char filename[] = "LOGGER00.txt";
+  for (uint8_t i = 0; i < 100; i++) {
+    filename[6] = i/10 + '0';
+    filename[7] = i%10 + '0';
+    if (! SD.exists(filename)) {
+      // only open a new file if it doesn't exist
+      myFile = SD.open(filename, FILE_WRITE); 
+      break;  // leave the loop!
     }
-     else {
-    Serial.println("File name created!");
-    }
+  }
 
-  myFile = SD.open("DLOG.txt", FILE_WRITE);
-  
+  Serial.println(filename);
+  myFile = SD.open(filename, FILE_WRITE);
+  Serial.println(myFile);
   if (myFile) {
     //Print Date in File
     myFile.print("V ");
@@ -229,11 +229,11 @@ void initializeSD() {
     myFile.close();
     Serial.println("File Created and File Closed");
   
-     } else {
-       Serial.print("Error while opening file");
-       RED();
-       while(1);
-     }
+    } else {
+     Serial.print("Error while opening file");
+     RED();
+     while(1);
+    }
 }
 
 // ================================================================
