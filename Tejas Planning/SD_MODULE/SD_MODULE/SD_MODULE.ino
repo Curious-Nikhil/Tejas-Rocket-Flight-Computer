@@ -17,7 +17,7 @@
  This example code is in the public domain.
 
  */
-#include <SPI.h>
+//#include <SPI.h>
 #include <SD.h>
 String filename; 
 File myFile;
