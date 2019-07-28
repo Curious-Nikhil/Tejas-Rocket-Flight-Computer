@@ -18,10 +18,12 @@ float calibration_factor = -560;
 float weight = 0;
 
 //Timer
+int time_ms;
 unsigned long previousMillis;
 unsigned long startMillis;
 unsigned long currentMillis;
-unsigned long period = 10000; // Time till Loadcell is active
+unsigned long time_millis;
+unsigned long period = 1; // Time till Loadcell is active
 
 //SD card
 String filename;
@@ -67,7 +69,7 @@ void setup()
 
 void loop()
 {
-
+  Serial.println("IN LOOP");
   buttonState = digitalRead(pushbutton);
   digitalWrite(mos, LOW); //Set Mos pin LOW, dont launch by accident!!
   digitalWrite(LED, LOW);
@@ -152,10 +154,19 @@ void loop()
     Serial.println("ON - LAUNCH OFF!!!");
     digitalWrite(mos, HIGH);
 
-    startMillis = millis();
     //Write data to SD card for 16 seconds
     while (i < 1500)
     {
+      //Time Instance
+      currentMillis = millis(); 
+
+      if (currentMillis - previousMillis > period) {
+        previousMillis = currentMillis;
+
+        time_ms++;
+      }
+
+      Serial.println(time_ms);
 
       Serial.println("THRUST");
       i++;
@@ -164,15 +175,12 @@ void loop()
 
       //write to sd card
 
-      myFile.print(startMillis);
+      myFile.print(time_ms);
       myFile.print(",");
       myFile.println(weight);
     }
 
     myFile.close();
-    previousMillis = millis();
-
-    Serial.println(previousMillis - startMillis);
 
     delay(1000);
 
@@ -243,9 +251,9 @@ void initializeSD()
   Serial.println(myFile);
   if (myFile)
   {
-    //Print Header Files  - - meters, pascal, est_alt, mpuPitch, mpuRoll, mpuYaw, OutputX, OutputY
+    //Print Header Files - meters, pascal, est_alt, mpuPitch, mpuRoll, mpuYaw, OutputX, OutputY
 
-    myFile.print("Time");
+    myFile.print("Time(ms)");
     myFile.print(",");
     myFile.println("weight");
 
@@ -256,8 +264,7 @@ void initializeSD()
   {
     Serial.print(F("Error while opening file"));
     RED();
-    while (1)
-      ;
+    while (1);
   }
 }
 
