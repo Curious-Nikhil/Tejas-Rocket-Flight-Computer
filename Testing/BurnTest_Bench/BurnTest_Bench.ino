@@ -6,9 +6,10 @@
 #define buzzer 7
 #define LED 9 // Red Light
 #define GLED 8
-
+#define RESET_PIN 10
 int buttonState = 0;
 int i = 0;
+bool Fire = 0;
 
 //LOADCELL Stuff here
 #define DOUT 2
@@ -36,6 +37,7 @@ void setup()
 
   pinMode(mos, OUTPUT);
   pinMode(LED, OUTPUT);
+  pinMode(RESET_PIN, OUTPUT);
   pinMode(pushbutton, INPUT);
 
   //Startup Sound
@@ -77,13 +79,11 @@ void loop()
 
   digitalWrite(mos, LOW); //Set Mos pin LOW, dont launch by accident!!
 
-  GREEN();
-
-   //power down HX711 - save power
+  GREEN_Idle();
 
   if (buttonState == HIGH)
   {
-
+    Fire = 1;
     tone(buzzer, 500, 500);
     digitalWrite(LED, HIGH);
 
@@ -212,7 +212,6 @@ void loop()
     scale.power_down(); // power down loadcell
   }
 
-
   buttonState = 0;
 
   digitalWrite(mos, LOW);
@@ -306,17 +305,18 @@ void RED()
   tone(7, 2000, 100);
 }
 
-void GREEN() {
+void GREEN_Idle() {
 
   //Everything is fine.. signal.
-    unsigned long interval = 1000;
+  unsigned long interval = 1000;
+  unsigned long mid_val;
   currentMillis = millis();
   if (currentMillis - previousMillis > interval) {
     previousMillis = currentMillis;
-
+    mid_val = currentMillis - previousMillis;
     digitalWrite(GLED, HIGH);
 
-      tone(7, 2500, 100);
+    tone(7, 2500, 100);
 
   }
   else {
