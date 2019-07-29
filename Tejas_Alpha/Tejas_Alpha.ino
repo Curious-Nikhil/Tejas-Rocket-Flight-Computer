@@ -21,7 +21,6 @@
 //#define DMP_MOD
 #define SERIAL_DEBUG
 
-
 // =============================
 // == Include and Define Vars ==
 //==============================
