@@ -4,7 +4,8 @@
 #define mos 2
 #define pushbutton A0
 #define buzzer 7
-#define LED 9
+#define LED 9 // Red Light
+#define GLED 8
 
 int buttonState = 0;
 int i = 0;
@@ -14,7 +15,7 @@ int i = 0;
 #define CLK 3
 
 HX711 scale;
-float calibration_factor = -560;
+float calibration_factor = 239;
 float weight = 0;
 
 //Timer
@@ -22,7 +23,6 @@ int time_ms;
 unsigned long previousMillis;
 unsigned long startMillis;
 unsigned long currentMillis;
-unsigned long time_millis;
 unsigned long period = 1; // Time till Loadcell is active
 
 //SD card
@@ -47,32 +47,39 @@ void setup()
   tone(buzzer, 2500, 300);
   delay(1000);
 
-  //LOADCELL
-  //power_down();
-  //  scale.begin(DOUT, CLK);
-  //
-  //  scale.set_scale();
-  //  scale.tare();
-  //Serial.println("Loadcel is set up");
+  // power_down();
 
   //SD CARD initialization
 
   initializeSD();
 
-  // if (scale.wait_ready_timeout(1000) == 0)
-  // {
-  //   Serial.println("HX711 not Found");
-  //   RED();
-  //   while (1);
-  // }
+  //Check if Loadcel is working.
+  scale.begin(DOUT, CLK);
+
+  scale.set_scale();
+  scale.tare();
+  long reading;
+  Serial.println("Loadcel is set up");
+
+  Serial.println(scale.read());
+  if (scale.wait_ready_timeout(1000) == 0 || scale.read() < 1000)
+  {
+    Serial.println("HX711 not Found");
+    RED();
+    while (1);
+  }
+  scale.power_down();
 }
 
 void loop()
 {
-  Serial.println("IN LOOP");
   buttonState = digitalRead(pushbutton);
+
   digitalWrite(mos, LOW); //Set Mos pin LOW, dont launch by accident!!
-  digitalWrite(LED, LOW);
+
+  GREEN();
+
+   //power down HX711 - save power
 
   if (buttonState == HIGH)
   {
@@ -80,16 +87,27 @@ void loop()
     tone(buzzer, 500, 500);
     digitalWrite(LED, HIGH);
 
-    //open and check if file can be opened or not.
-
     myFile = SD.open(filename, FILE_WRITE);
 
-    if (myFile == 0)
+    scale.power_up();
+    scale.set_scale();
+    scale.tare();
+
+    //Check for file and loadcell error
+    if (myFile == 0 || scale.read() < 1000)
     {
       RED();
-      Serial.println("File can't be opened - ERROR = 0");
+      Serial.println("File or Loadcel - ERROR = 0");
       while (1);
     }
+
+    Serial.println("Loadcel and SD Mod is set up");
+
+
+    //Reset Timer Vars
+    previousMillis = 0;
+    startMillis = 0;
+    currentMillis = 0;
 
     Serial.println("Starting a 10 second Timer!");
     delay(1000);
@@ -155,10 +173,11 @@ void loop()
     digitalWrite(mos, HIGH);
 
     //Write data to SD card for 16 seconds
-    while (i < 1500)
+    while (i < 500)
     {
+      Serial.println("While Loop");
       //Time Instance
-      currentMillis = millis(); 
+      currentMillis = millis();
 
       if (currentMillis - previousMillis > period) {
         previousMillis = currentMillis;
@@ -168,16 +187,15 @@ void loop()
 
       Serial.println(time_ms);
 
-      Serial.println("THRUST");
       i++;
-      //      scale.set_scale(calibration_factor); //Adjust to the calibration factor
-      //      Serial.print(scale.get_units(), 1);
+      scale.set_scale(calibration_factor); //Adjust to the calibration factor
+      Serial.print(scale.get_units(), 1);
 
       //write to sd card
 
       myFile.print(time_ms);
       myFile.print(",");
-      myFile.println(weight);
+      myFile.println(scale.get_units(), 1);
     }
 
     myFile.close();
@@ -190,7 +208,10 @@ void loop()
     tone(buzzer, 3500, 300);
     delay(500);
     tone(buzzer, 2500, 300);
+
+    scale.power_down(); // power down loadcell
   }
+
 
   buttonState = 0;
 
@@ -283,4 +304,23 @@ void RED()
   tone(7, 2000, 100);
   delay(500);
   tone(7, 2000, 100);
+}
+
+void GREEN() {
+
+  //Everything is fine.. signal.
+    unsigned long interval = 1000;
+  currentMillis = millis();
+  if (currentMillis - previousMillis > interval) {
+    previousMillis = currentMillis;
+
+    digitalWrite(GLED, HIGH);
+
+      tone(7, 2500, 100);
+
+  }
+  else {
+    digitalWrite(GLED, LOW);
+  }
+
 }

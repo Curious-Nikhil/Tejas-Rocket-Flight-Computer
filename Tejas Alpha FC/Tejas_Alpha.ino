@@ -387,10 +387,31 @@ void countTime() {
   }
 }
 void RED() {
+  //Error signal.
   digitalWrite(RLED, HIGH);
   Serial.println(F("ERROR!!!"));
 }
 
 void GRE() {
   digitalWrite(GLED, HIGH);
+}
+
+
+void GREEN() {
+
+  //Everything is fine.. signal.
+    unsigned long interval = 1000;
+  currentMillis = millis();
+  if (currentMillis - previousMillis > interval) {
+    previousMillis = currentMillis;
+
+    digitalWrite(GLED, HIGH);
+
+      tone(7, 2500, 100);
+
+  }
+  else {
+    digitalWrite(GLED, LOW);
+  }
+
 }
