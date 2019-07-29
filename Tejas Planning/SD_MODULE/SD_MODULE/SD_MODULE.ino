@@ -80,65 +80,65 @@ void sdfn (){
 
 }
 
-//void initializeSD(){
-//  // see if the card is present and can be initialized:
-//    if (!SD.begin(4)) {
-//      Serial.println("Card failed, or not present");
-//      err = true;
-//      // don't do anything more:
-//      while (1);
-//    }
-//    Serial.println("card initialized.");
-//
-//    //Create a file with new name
-//    if (!loadSDFile()) {
-//      Serial.println("Failed to create file");
-//      err = true;
-//      while(1);
-//    }
-//    else {
-//      Serial.println("File name created!");
-//    }
-//
-//    myFile = SD.open("test.txt", FILE_WRITE);
-//    
-//    if (myFile) {      
-//      //Print Date in File
-//      myFile.print("V ");
-//      myFile.println(VERSION);
-//      
-//      myFile.println("Date: ");
-//      myFile.print(DAY);
-//      myFile.print(MONTH);
-//      myFile.println(YEAR);
-//  
-//      //Print Header Files  - - meters, pascal, est_alt, mpuPitch, mpuRoll, mpuYaw, OutputX, OutputY
-//
-//      myFile.print("Height");
-//      myFile.print(",");
-//      myFile.print("Pascal");
-//      myFile.print(",");
-//      myFile.print("Kalman_Height");
-//      myFile.print(",");
-//      myFile.print("mpuPitch");
-//      myFile.print(",");
-//      myFile.print("mpuRoll");
-//      myFile.print(",");
-//      myFile.print("mpuYaw");
-//      myFile.print(",");
-//      myFile.print("OutputX");
-//      myFile.print(",");
-//      myFile.println("OutputY");
-// 
-//      myFile.close();
-//      Serial.println("File Created and File Closed");
-//
-//    } else {
-//      #ifdef SERIAL_DEBUG
-//        Serial.println("Error opening file");
-//      #endif
-//      digitalWrite(RLED, HIGH);
-//      while(1);
-//    }
-//    
-//}
+void initializeSD(){
+ // see if the card is present and can be initialized:
+   if (!SD.begin(4)) {
+     Serial.println("Card failed, or not present");
+     err = true;
+     // don't do anything more:
+     while (1);
+   }
+   Serial.println("card initialized.");
+
+   //Create a file with new name
+   if (!loadSDFile()) {
+     Serial.println("Failed to create file");
+     err = true;
+     while(1);
+   }
+   else {
+     Serial.println("File name created!");
+   }
+
+   myFile = SD.open("test.txt", FILE_WRITE);
+   
+   if (myFile) {      
+     //Print Date in File
+     myFile.print("V ");
+     myFile.println(VERSION);
+     
+     myFile.println("Date: ");
+     myFile.print(DAY);
+     myFile.print(MONTH);
+     myFile.println(YEAR);
+ 
+     //Print Header Files  - - meters, pascal, est_alt, mpuPitch, mpuRoll, mpuYaw, OutputX, OutputY
+
+     myFile.print("Height");
+     myFile.print(",");
+     myFile.print("Pascal");
+     myFile.print(",");
+     myFile.print("Kalman_Height");
+     myFile.print(",");
+     myFile.print("mpuPitch");
+     myFile.print(",");
+     myFile.print("mpuRoll");
+     myFile.print(",");
+     myFile.print("mpuYaw");
+     myFile.print(",");
+     myFile.print("OutputX");
+     myFile.print(",");
+     myFile.println("OutputY");
+
+     myFile.close();
+     Serial.println("File Created and File Closed");
+
+   } else {
+     #ifdef SERIAL_DEBUG
+       Serial.println("Error opening file");
+     #endif
+     digitalWrite(RLED, HIGH);
+     while(1);
+   }
+   
+}
