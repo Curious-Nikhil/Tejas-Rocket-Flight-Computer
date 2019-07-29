@@ -2,7 +2,7 @@
 #include <SD.h>
 
 #define mos 2
-#define pushbutton A0
+#define pushbutton 5
 #define buzzer 7
 #define LED 9 // Red Light
 #define GLED 8
@@ -38,7 +38,7 @@ void setup()
   pinMode(mos, OUTPUT);
   pinMode(LED, OUTPUT);
   pinMode(RESET_PIN, OUTPUT);
-  pinMode(pushbutton, INPUT);
+  pinMode(pushbutton, INPUT_PULLUP);
 
   //Startup Sound
   tone(buzzer, 2000, 300);
@@ -81,7 +81,8 @@ void loop()
 
   GREEN_Idle();
 
-  if (buttonState == HIGH)
+  //1 - OFF, 0 - ON. - using INPUT_PULLUP.
+  if (buttonState == 0) 
   {
     Fire = 1;
     tone(buzzer, 500, 500);
@@ -179,7 +180,7 @@ void loop()
       //Time Instance
       currentMillis = millis();
 
-      if (currentMillis - previousMillis > period) {
+      if (currentMillis - previousMillis >= period) {
         previousMillis = currentMillis;
 
         time_ms++;
@@ -212,7 +213,7 @@ void loop()
     scale.power_down(); // power down loadcell
   }
 
-  buttonState = 0;
+  buttonState = 1;
 
   digitalWrite(mos, LOW);
 }
@@ -311,7 +312,7 @@ void GREEN_Idle() {
   unsigned long interval = 1000;
   unsigned long mid_val;
   currentMillis = millis();
-  if (currentMillis - previousMillis > interval) {
+  if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
     mid_val = currentMillis - previousMillis;
     digitalWrite(GLED, HIGH);
