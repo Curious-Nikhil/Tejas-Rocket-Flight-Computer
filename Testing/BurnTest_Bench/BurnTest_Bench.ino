@@ -10,8 +10,8 @@ int buttonState = 0;
 int i = 0;
 
 //LOADCELL Stuff here
-#define DOUT 4
-#define CLK 5
+#define DOUT 2
+#define CLK 3
 
 HX711 scale;
 float calibration_factor = -560;
