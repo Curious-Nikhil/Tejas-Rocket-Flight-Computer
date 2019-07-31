@@ -1,0 +1,25 @@
+start
+
+check for main activation switch
+
+check for button state
+    Use Interrupts
+
+enable button
+
+check continuity
+
+ignite
+
+start reading data
+
+ * close loadcell
+ * close file
+
+
+--------------
+add bluetooth support
+
+
+50
+

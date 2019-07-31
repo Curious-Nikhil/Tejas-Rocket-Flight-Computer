@@ -8,13 +8,12 @@
 #define GLED 8
 
 //For Debug:
-//#define MillisCount
 //#define LOADCELL_CHECK
 
 int buttonState = 0;
 int i = 0;
 bool Fire_State = 0;
-bool Hold = 0;
+bool COUNTER_STATUS = 0;
 
 //LOADCELL Stuff here
 #define DOUT 2
@@ -26,9 +25,11 @@ float weight = 0;
 
 //Timer
 int time_ms;
+int counter = 0;
 unsigned long previousMillis;
 unsigned long startMillis;
 unsigned long currentMillis;
+unsigned long time_interval = 1000;
 unsigned long period = 1; // Time till Loadcell is active
 
 //SD card
@@ -43,6 +44,7 @@ void setup()
 
   pinMode(mos, OUTPUT);
   pinMode(LED, OUTPUT);
+  pinMode(GLED, OUTPUT);
   pinMode(pushbutton, INPUT_PULLUP);
   //attachInterrupt(5, ABORT, RISING);
 
@@ -68,7 +70,7 @@ void setup()
   long reading;
   Serial.println("Loadcel is set up");
 
-  #ifdef LOADCELL_CHECK
+#ifdef LOADCELL_CHECK
   Serial.println(scale.read());
   if (scale.wait_ready_timeout(1000) == 0 || scale.read() < 1000)
   {
@@ -77,7 +79,7 @@ void setup()
     while (1);
   }
   scale.power_down();
-  #endif
+#endif
 
   //check if Fire Switch is enabled?
   buttonState = digitalRead(pushbutton);
@@ -85,7 +87,7 @@ void setup()
     //Error state, need to switch it off
     Serial.println("Fire Enable: Error");
     RED();
-    while(1);
+    while (1);
   }
 }
 
@@ -95,23 +97,28 @@ void loop()
 
   digitalWrite(mos, LOW); //Set Mos pin LOW, dont launch by accident!!
 
-  GREEN_Idle();
+  if (COUNTER_STATUS == 0) {
+    GREEN_Idle();
+    Serial.println(buttonState);
+
+  }
+  // RESET COUNTER
+  else if (COUNTER_STATUS == 1 && buttonState == 1) {
+    Serial.println("HOLD COUNTER");
+    Serial.println("RESET COUNTDOWN");
+    COUNTER_STATUS = 0;
+    counter = 0;
+    HOLD_IDLE();
+    delay(5000);
+  }
+
+
 
   //1 - OFF, 0 - ON. - using INPUT_PULLUP.
-  if (buttonState == 0)
+  if (buttonState == 0 && Fire_State == 0)
   {
-    Fire_State = 1;
-    tone(buzzer, 500, 500);
-    digitalWrite(LED, HIGH);
-
-    myFile = SD.open(filename, FILE_WRITE);
-
-    scale.power_up();
-    scale.set_scale();
-    scale.tare();
-
     //Check for file and loadcell error
-    #ifdef LOADCELL_CHECK
+#ifdef LOADCELL_CHECK
     if (myFile == 0 || scale.read() < 1000)
     {
       RED();
@@ -120,131 +127,78 @@ void loop()
     }
 
     Serial.println("Loadcel and SD Mod is set up");
-    #endif
-
-    #ifdef MillisCount
-    unsigned long time_interval = 1000;
-    int i;
+#endif
     currentMillis = millis();
 
-    for (i = 1; i <= 11; i++) {
-      if (currentMillis - previousMillis >= i*time_interval) {
-        previousMillis = currentMillis;
+    if (currentMillis - previousMillis >= (time_interval))  {
 
-        if (i == 0) {
+      COUNTER_STATUS = 1;
+      previousMillis = currentMillis;
+      counter++;
+
+      if (counter == 1) {
         Serial.println("Starting a 10 second Timer!");
-        Serial.println(11 - i);
-        tone(buzzer, 2500, 500);
-        digitalWrite(LED, HIGH);
-          
-        }
-        else if(i%2 == 0) {
-            //If even
-        digitalWrite(LED, HIGH);
-        Serial.println(11 - i);
+        Serial.println(10 - counter);
         tone(buzzer, 3500, 500);
-        } 
-        else {
-        digitalWrite(LED, LOW);
-        Serial.println(11 - i);
-        tone(buzzer, 2500, 500);
+        digitalWrite(LED, HIGH);
+
+        //check for systems once again.
+        myFile = SD.open(filename, FILE_WRITE);
+
+        scale.power_up();
+        scale.set_scale();
+        scale.tare();
+
+        //Check for file and loadcell error
+#ifdef LOADCELL_CHECK
+        if (myFile == 0 || scale.read() < 1000)
+        {
+          RED();
+          Serial.println("File or Loadcel - ERROR = 0");
+          while (1);
         }
+        Serial.println("Loadcel and SD Mod is set up");
+#endif
+      }
+      //Launch Sequence Starts
+      if (counter % 2 == 0)
+      {
+        //If even
+        digitalWrite(LED, HIGH);
+        Serial.println(10 - counter);
+        tone(buzzer, 3500, 500);
+      }
+      if (counter % 2 == 1)
+      {
+        digitalWrite(LED, LOW);
+        Serial.println(10 - counter);
+        tone(buzzer, 3000, 500);
       }
     }
 
-    #endif
-    
-    #define OLD
-    #ifdef OLD
-    Serial.println("Starting a 10 second Timer!");
-    delay(1000);
-    digitalWrite(LED, LOW);
-
-    tone(buzzer, 3500, 500);
-    Serial.println("9");
-    delay(1000);
-    digitalWrite(LED, HIGH);
-
-    tone(buzzer, 3500, 500);
-    Serial.println("8");
-    delay(1000);
-    digitalWrite(LED, LOW);
-
-    tone(buzzer, 3500, 500);
-    Serial.println("7");
-    delay(1000);
-    digitalWrite(LED, LOW);
-
-    tone(buzzer, 3500, 500);
-    Serial.println("6");
-    delay(1000);
-    digitalWrite(LED, LOW);
-
-    tone(buzzer, 3500, 500);
-
-    Serial.println("5");
-    delay(1000);
-    digitalWrite(LED, HIGH);
-
-    tone(buzzer, 3500, 500);
-    Serial.println("4");
-    delay(1000);
-    digitalWrite(LED, LOW);
-
-    tone(buzzer, 3500, 500);
-    Serial.println("3");
-    delay(1000);
-    digitalWrite(LED, HIGH);
-
-    tone(buzzer, 3500, 500);
-    Serial.println("2");
-    delay(1000);
-    digitalWrite(LED, LOW);
-
-    tone(buzzer, 3500, 500);
-
-    Serial.println("1");
-    delay(1000);
-    digitalWrite(LED, HIGH);
-
-    tone(buzzer, 3500, 500);
-    Serial.println("0, INGITION SEQUENCE START");
-    delay(100);
-    digitalWrite(LED, LOW);
-
-    tone(buzzer, 4500, 2000);
-    digitalWrite(LED, HIGH);
-
-    #endif
-
-    buttonState = digitalRead(pushbutton); //check if Fire Button is still "ON"
-
-    #define FIRE_PROGRAM
-    #ifdef FIRE_PROGRAM
-    if (buttonState == 0) {
-      Serial.println("ON - LAUNCH OFF!!!");
+    if (counter >= 10 && Fire_State == 0)
+    {
+      Serial.println("LAUNCH OFF");
+      tone(buzzer, 4500, 2000);
+      digitalWrite(LED, HIGH);
       digitalWrite(mos, HIGH);
-
-      //Write data to SD card for 16 seconds
-      previousMillis = 0;
-
-      while (i < 500)
+      while (i < 100)
       {
-        Serial.println("While Loop");
+        //Serial.println("While Loop");
         //Time Instance
         currentMillis = millis();
 
         if (currentMillis - previousMillis >= period) {
           previousMillis = currentMillis;
 
-          time_ms++;  //not exactly realtime millisceconds. 
+          time_ms++;  //not exactly realtime millisceconds.
         }
 
         Serial.println(time_ms);
 
         i++;
         scale.set_scale(calibration_factor); //Adjust to the calibration factor
-        Serial.print(scale.get_units(), 1);
+        //Serial.print(scale.get_units(), 1);
 
         //write to sd card
 
@@ -252,35 +206,24 @@ void loop()
         myFile.print(",");
         myFile.println(scale.get_units(), 1);
       }
+      Fire_State = 1;
+      myFile.close();
+      scale.power_down(); // power down loadcell
+      tone(buzzer, 2000, 300);
+      delay(500);
+      tone(buzzer, 3000, 300);
+      tone(buzzer, 3500, 300);
+      delay(500);
+      tone(buzzer, 2500, 300);
+
+      goto bailout;
     }
-    else {
-        Serial.println("ABORT: bailout");
-        RED();
-        //use GOTO fn.
-        delay(5000);
-        goto bailout;
-        
-    }
-    
-    bailout: //ABORT at the last second.
-    digitalWrite(LED, LOW);
-    myFile.close();
 
-    delay(1000);
-
-    tone(buzzer, 2000, 300);
-    delay(500);
-    tone(buzzer, 3000, 300);
-    tone(buzzer, 3500, 300);
-    delay(500);
-    tone(buzzer, 2500, 300);
-
-    scale.power_down(); // power down loadcell
-    #endif
+    buttonState = digitalRead(pushbutton); //check if Fire Button is still "ON"
   }
 
-  //buttonState = 1;
-
+bailout:
+  digitalWrite(LED, LOW);
   digitalWrite(mos, LOW);
 }
 
@@ -391,6 +334,20 @@ void GREEN_Idle() {
   }
 }
 
-void ABORT() {
-  Hold = true;
+void HOLD_IDLE() {
+  //Counter is HOLD> Signal
+  tone(7, 3200, 2000);
+  delay(1000);
+  for (int i = 1; i < 20; i++) {
+    digitalWrite(LED, HIGH);
+    digitalWrite(GLED, LOW);
+    tone(7, (i * 10) + 2400, 25);
+    delay(50);
+    digitalWrite(LED, LOW);
+    digitalWrite(GLED, HIGH);
+    delay(50);
+    tone(7, 2500, 25);
+  }
+
+  digitalWrite(GLED, LOW);
 }
