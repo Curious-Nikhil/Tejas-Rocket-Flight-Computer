@@ -146,7 +146,7 @@ void loop()
         myFile = SD.open(filename, FILE_WRITE);
 
         scale.power_up();
-        scale.set_scale();
+        scale.set_scale(calibration_factor); 
         scale.tare();
 
         //Check for file and loadcell error
@@ -182,12 +182,16 @@ void loop()
       tone(buzzer, 4500, 2000);
       digitalWrite(LED, HIGH);
       digitalWrite(mos, HIGH);
+
+      previousMillis = 0;
       while (i < 100)
       {
-        //Serial.println("While Loop");
+        digitalWrite(mos, HIGH); // too dangerous. 
+
+        Serial.println("While Loop");
         //Time Instance
         currentMillis = millis();
-
+        
         if (currentMillis - previousMillis >= period) {
           previousMillis = currentMillis;
 
@@ -195,19 +199,17 @@ void loop()
         }
 
         Serial.println(time_ms);
-        Serial.println(scale.get_units(), 1);
-
-
-        i++;
-        scale.set_scale(calibration_factor); //Adjust to the calibration factor
-        //Serial.print(scale.get_units(), 1);
+        //Serial.println(scale.get_units(), 1);
 
         //write to sd card
 
         myFile.print(time_ms);
         myFile.print(",");
-        myFile.println(scale.get_units(), 1);
+        //myFile.println(scale.get_units(), 1);
+
+        i++;   
       }
+
       Fire_State = 1;
       myFile.close();
       scale.power_down(); // power down loadcell
