@@ -195,6 +195,8 @@ void loop()
         }
 
         Serial.println(time_ms);
+        Serial.println(scale.get_units(), 1);
+
 
         i++;
         scale.set_scale(calibration_factor); //Adjust to the calibration factor
