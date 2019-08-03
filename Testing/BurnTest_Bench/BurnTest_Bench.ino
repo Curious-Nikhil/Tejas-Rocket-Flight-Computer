@@ -94,7 +94,6 @@ void setup()
 void loop()
 {
   buttonState = digitalRead(pushbutton);
-
   digitalWrite(mos, LOW); //Set Mos pin LOW, dont launch by accident!!
 
   if (COUNTER_STATUS == 0) {
@@ -106,11 +105,19 @@ void loop()
   else if (COUNTER_STATUS == 1 && buttonState == 1) {
     Serial.println("HOLD COUNTER");
     Serial.println("RESET COUNTDOWN");
-    COUNTER_STATUS = 0;
+    COUNTER_STATUS = 0; 
     counter = 0;
     HOLD_IDLE();
     delay(5000);
   }
+  else if (COUNTER_STATUS == 1 && buttonState == 0 && Fire_State == 1) {
+  Serial.println("RELEASE FIRE BUTTON!");
+  POST_LAUNCH();
+  delay(5000);
+  digitalWrite(LED, HIGH);
+  while(1);
+  }
+  
 
 
 
@@ -132,6 +139,7 @@ void loop()
 
     if (currentMillis - previousMillis >= (time_interval))  {
 
+      Serial.println(currentMillis - previousMillis);
       COUNTER_STATUS = 1;
       previousMillis = currentMillis;
       counter++;
@@ -186,7 +194,7 @@ void loop()
       previousMillis = 0;
       while (i < 100)
       {
-        digitalWrite(mos, HIGH); // too dangerous. 
+        digitalWrite(mos, HIGH); 
 
         Serial.println("While Loop");
         //Time Instance
@@ -213,6 +221,7 @@ void loop()
       Fire_State = 1;
       myFile.close();
       scale.power_down(); // power down loadcell
+
       tone(buzzer, 2000, 300);
       delay(500);
       tone(buzzer, 3000, 300);
@@ -220,15 +229,13 @@ void loop()
       delay(500);
       tone(buzzer, 2500, 300);
 
-      goto bailout;
+      Serial.println("Launch Program ENDS");
     }
 
     buttonState = digitalRead(pushbutton); //check if Fire Button is still "ON"
   }
 
-bailout:
   digitalWrite(LED, LOW);
-  digitalWrite(mos, LOW);
 }
 
 //Create a new filename everytime.
@@ -351,6 +358,35 @@ void HOLD_IDLE() {
     digitalWrite(GLED, HIGH);
     delay(50);
     tone(7, 2500, 25);
+  }
+
+  digitalWrite(GLED, LOW);
+}
+
+void POST_LAUNCH() {
+  //Counter is HOLD> Signal
+  tone(7, 3200, 2000);
+  delay(1000);
+  for (int i = 1; i < 10; i++) {
+    digitalWrite(LED, HIGH);
+    digitalWrite(GLED, LOW);
+    tone(7, (i * 10) + 2400, 25);
+    delay(50);
+    digitalWrite(LED, LOW);
+    digitalWrite(GLED, HIGH);
+    delay(50);
+    tone(7, 2500, 25);
+  }
+
+  for (int i = 10; i < 1; i++) {
+  digitalWrite(LED, HIGH);
+  digitalWrite(GLED, LOW);
+  tone(7, (i * 10) + 2400, 25);
+  delay(50);
+  digitalWrite(LED, LOW);
+  digitalWrite(GLED, HIGH);
+  delay(50);
+  tone(7, 2500, 25);
   }
 
   digitalWrite(GLED, LOW);
