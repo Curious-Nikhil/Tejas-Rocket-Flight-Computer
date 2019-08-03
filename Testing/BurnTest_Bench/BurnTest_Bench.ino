@@ -4,7 +4,7 @@
 #define mos 2
 #define pushbutton 5
 #define buzzer 7
-#define LED 9 // Red Light
+#define RLED 9 // Red Light
 #define GLED 8
 
 //For Debug:
@@ -14,6 +14,7 @@ int buttonState = 0;
 int i = 0;
 bool Fire_State = 0;
 bool COUNTER_STATUS = 0;
+bool BS_LOOP = 0;
 
 //LOADCELL Stuff here
 #define DOUT 2
@@ -43,7 +44,7 @@ void setup()
   Serial.println("Checking Systems:");
 
   pinMode(mos, OUTPUT);
-  pinMode(LED, OUTPUT);
+  pinMode(RLED, OUTPUT);
   pinMode(GLED, OUTPUT);
   pinMode(pushbutton, INPUT_PULLUP);
   //attachInterrupt(5, ABORT, RISING);
@@ -94,36 +95,38 @@ void setup()
 void loop()
 {
   buttonState = digitalRead(pushbutton);
-  digitalWrite(mos, LOW); //Set Mos pin LOW, dont launch by accident!!
 
+  digitalWrite(mos, LOW); //Set Mos pin LOW, dont launch by accident!!
+  
   if (COUNTER_STATUS == 0) {
     GREEN_Idle();
-    Serial.println(buttonState);
-
   }
   // RESET COUNTER
   else if (COUNTER_STATUS == 1 && buttonState == 1) {
     Serial.println("HOLD COUNTER");
     Serial.println("RESET COUNTDOWN");
-    COUNTER_STATUS = 0; 
+    COUNTER_STATUS = 0;
     counter = 0;
+    BS_LOOP = 0; 
     HOLD_IDLE();
     delay(5000);
   }
   else if (COUNTER_STATUS == 1 && buttonState == 0 && Fire_State == 1) {
-  Serial.println("RELEASE FIRE BUTTON!");
-  POST_LAUNCH();
-  delay(5000);
-  digitalWrite(LED, HIGH);
-  while(1);
+    POST_LAUNCH();
   }
-  
 
 
 
   //1 - OFF, 0 - ON. - using INPUT_PULLUP.
   if (buttonState == 0 && Fire_State == 0)
   {
+    
+    if (COUNTER_STATUS == 0 && BS_LOOP == 0) {
+      Serial.println("FIRE BUTTON ENABLED");
+      Serial.println("INITIATING LAUNCH PROGRAM! GODSPEED!");
+    }
+
+    BS_LOOP = 1; // check for button loop to print above message. 
     //Check for file and loadcell error
 #ifdef LOADCELL_CHECK
     if (myFile == 0 || scale.read() < 1000)
@@ -139,7 +142,6 @@ void loop()
 
     if (currentMillis - previousMillis >= (time_interval))  {
 
-      Serial.println(currentMillis - previousMillis);
       COUNTER_STATUS = 1;
       previousMillis = currentMillis;
       counter++;
@@ -148,13 +150,13 @@ void loop()
         Serial.println("Starting a 10 second Timer!");
         Serial.println(10 - counter);
         tone(buzzer, 3500, 500);
-        digitalWrite(LED, HIGH);
+        digitalWrite(RLED, HIGH);
 
         //check for systems once again.
         myFile = SD.open(filename, FILE_WRITE);
 
         scale.power_up();
-        scale.set_scale(calibration_factor); 
+        scale.set_scale(calibration_factor);
         scale.tare();
 
         //Check for file and loadcell error
@@ -172,13 +174,13 @@ void loop()
       if (counter % 2 == 0)
       {
         //If even
-        digitalWrite(LED, HIGH);
+        digitalWrite(RLED, HIGH);
         Serial.println(10 - counter);
         tone(buzzer, 3500, 500);
       }
       if (counter % 2 == 1)
       {
-        digitalWrite(LED, LOW);
+        digitalWrite(RLED, LOW);
         Serial.println(10 - counter);
         tone(buzzer, 3000, 500);
       }
@@ -188,18 +190,18 @@ void loop()
     {
       Serial.println("LAUNCH OFF");
       tone(buzzer, 4500, 2000);
-      digitalWrite(LED, HIGH);
+      digitalWrite(RLED, HIGH);
       digitalWrite(mos, HIGH);
 
       previousMillis = 0;
       while (i < 100)
       {
-        digitalWrite(mos, HIGH); 
+        digitalWrite(mos, HIGH); // too dangerous.
 
         Serial.println("While Loop");
         //Time Instance
         currentMillis = millis();
-        
+
         if (currentMillis - previousMillis >= period) {
           previousMillis = currentMillis;
 
@@ -215,13 +217,13 @@ void loop()
         myFile.print(",");
         //myFile.println(scale.get_units(), 1);
 
-        i++;   
+        i++;
       }
 
       Fire_State = 1;
+
       myFile.close();
       scale.power_down(); // power down loadcell
-
       tone(buzzer, 2000, 300);
       delay(500);
       tone(buzzer, 3000, 300);
@@ -229,13 +231,15 @@ void loop()
       delay(500);
       tone(buzzer, 2500, 300);
 
-      Serial.println("Launch Program ENDS");
+      goto bailout;
     }
 
     buttonState = digitalRead(pushbutton); //check if Fire Button is still "ON"
   }
 
-  digitalWrite(LED, LOW);
+bailout:
+  digitalWrite(RLED, LOW);
+  digitalWrite(mos, LOW);
 }
 
 //Create a new filename everytime.
@@ -312,14 +316,14 @@ void initializeSD()
 //Error Function
 void RED()
 {
-  digitalWrite(LED, HIGH);
+  digitalWrite(RLED, HIGH);
   tone(7, 2500, 100);
   delay(200);
-  digitalWrite(LED, LOW);
+  digitalWrite(RLED, LOW);
 
   tone(7, 2500, 100);
   delay(200);
-  digitalWrite(LED, HIGH);
+  digitalWrite(RLED, HIGH);
 
   tone(7, 2000, 100);
   delay(500);
@@ -327,22 +331,18 @@ void RED()
 }
 
 void GREEN_Idle() {
-
   //Everything is fine.. signal.
   unsigned long interval = 1000;
-  unsigned long mid_val;
   currentMillis = millis();
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
-    mid_val = currentMillis - previousMillis;
     digitalWrite(GLED, HIGH);
 
     tone(7, 2500, 100);
 
   }
-  else {
-    digitalWrite(GLED, LOW);
-  }
+  digitalWrite(GLED, LOW);
+  digitalWrite(RLED, LOW);
 }
 
 void HOLD_IDLE() {
@@ -350,11 +350,11 @@ void HOLD_IDLE() {
   tone(7, 3200, 2000);
   delay(1000);
   for (int i = 1; i < 20; i++) {
-    digitalWrite(LED, HIGH);
+    digitalWrite(RLED, HIGH);
     digitalWrite(GLED, LOW);
     tone(7, (i * 10) + 2400, 25);
     delay(50);
-    digitalWrite(LED, LOW);
+    digitalWrite(RLED, LOW);
     digitalWrite(GLED, HIGH);
     delay(50);
     tone(7, 2500, 25);
@@ -364,30 +364,17 @@ void HOLD_IDLE() {
 }
 
 void POST_LAUNCH() {
-  //Counter is HOLD> Signal
-  tone(7, 3200, 2000);
-  delay(1000);
-  for (int i = 1; i < 10; i++) {
-    digitalWrite(LED, HIGH);
-    digitalWrite(GLED, LOW);
-    tone(7, (i * 10) + 2400, 25);
-    delay(50);
-    digitalWrite(LED, LOW);
-    digitalWrite(GLED, HIGH);
-    delay(50);
-    tone(7, 2500, 25);
+
+  unsigned long interval = 3000;
+  currentMillis = millis();
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
+    Serial.println("RELEASE FIRE BUTTON!");
+
+    tone(7, 2500, 100);
+
   }
 
-  for (int i = 10; i < 1; i++) {
-  digitalWrite(LED, HIGH);
-  digitalWrite(GLED, LOW);
-  tone(7, (i * 10) + 2400, 25);
-  delay(50);
-  digitalWrite(LED, LOW);
-  digitalWrite(GLED, HIGH);
-  delay(50);
-  tone(7, 2500, 25);
-  }
+  digitalWrite(RLED, HIGH);
 
-  digitalWrite(GLED, LOW);
 }
