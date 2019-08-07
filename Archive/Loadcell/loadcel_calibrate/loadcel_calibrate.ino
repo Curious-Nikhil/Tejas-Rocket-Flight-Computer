@@ -1,8 +1,8 @@
 
 #include "HX711.h"
 
-#define LOADCELL_DOUT_PIN  4
-#define LOADCELL_SCK_PIN  5
+#define LOADCELL_DOUT_PIN  2
+#define LOADCELL_SCK_PIN  3
 
 HX711 scale;
 
