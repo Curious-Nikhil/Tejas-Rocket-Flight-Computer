@@ -14,6 +14,7 @@ String command;
 int mode = 0;
 int buttonState = 0;
 int i = 0;
+int timer = 0;
 bool BT_FIRE = 0;
 bool BT_ABORT = 0;
 bool BT_AVAILABLE = 0;
@@ -30,7 +31,6 @@ float calibration_factor = 239;
 float weight = 0;
 
 //Timer
-int time_ms;
 int counter = 0;
 unsigned long previousMillis;
 unsigned long startMillis;
@@ -69,8 +69,8 @@ void setup()
     Mode 2: Test Bench Launchpad - with checks.
   */
   Serial.println(Serial.available());
-  Serial.println("Waiting for Serial/BT command");
-  Serial.println("Enter Launchpad Mode:");
+  Serial.println(F("Waiting for Serial/BT command"));
+  Serial.println(F("Enter Launchpad Mode:"));
 
   digitalWrite(RLED, HIGH);
   while (Serial.available() == 0) {
@@ -84,12 +84,12 @@ void setup()
     Serial.println(command);
     if (command.equals("1")) {
       mode = 1;
-      Serial.println("M1: DEFAULT LAUNCPAD");
+      Serial.println(F("M1"));
       tone(buzzer, 2500, 2000);
       digitalWrite(GLED, HIGH);
     }
     else if (command.equals("2")) {
-      Serial.println("M2: TEST BENCH LAUNCPAD");
+      Serial.println(F("M2"));
       mode = 2;
       tone(buzzer, 2500, 2000);
       digitalWrite(GLED, HIGH);
@@ -99,8 +99,8 @@ void setup()
       digitalWrite(GLED, LOW);
     }
     else {
-      Serial.println("Invalid command");
-      Serial.println("Reset Launcpad");
+      Serial.println(F("x com"));
+      Serial.println(F("Reset Launcpad"));
       RED();
       while (1);
     }
@@ -117,19 +117,27 @@ void setup()
     scale.set_scale();
     scale.tare();
     long reading;
-    Serial.println("Loadcel is set up");
 
-#ifdef LOADCELL_CHECK
-    Serial.println(scale.read());
-    if (scale.wait_ready_timeout(1000) == 0 || scale.read() < 1000)
-    {
-      Serial.println("HX711 not Found");
-      RED();
-      while (1);
+      #ifdef LOADCELL_CHECK
+    for (int i=0; i<10; i++) {
+      Serial.println(scale.read());
+      // && scale.read() > 1000 && scale.read() < 2000
+      if (scale.wait_ready_timeout(1000) == 0 || scale.read() <1200)
+      {
+        Serial.println(F("HX711 not Found"));
+        Serial.println(scale.read());
+
+        RED();
+        while (1);
+      }
+      Serial.println(scale.read());
+
     }
+
     scale.power_down();
-#endif
-  }
+      #endif
+
+   }
 
 
 
@@ -137,7 +145,7 @@ void setup()
   buttonState = digitalRead(toggleButton);
   if (buttonState == 0) {
     //Error state, need to switch it off
-    Serial.println("Fire Enable: Error");
+    Serial.println(F("Fire Enable: Error"));
     RED();
     while (1);
   }
@@ -158,11 +166,10 @@ void loop()
     if (command.equals("F1")) {
       tone(buzzer, 2500, 1500);
       digitalWrite(GLED, HIGH);
-      Serial.println("AUTHORIZE FIRE KEY");
+      Serial.println(F("AUTHORIZE FIRE KEY"));
 
       while (Serial.available() == 0) {}
 
-      Serial.println("reading serial...");
       command = Serial.readStringUntil('\n');
       command.trim();
       Serial.println(command);
@@ -171,22 +178,22 @@ void loop()
         BT_FIRE = 1;
         buttonState = 1; //bug
         Serial.println(command);
-        Serial.println("LAUNCH AUTHORIZED!");
+        Serial.println(F("LAUNCH AUTHORIZED!"));
         digitalWrite(GLED, LOW);
 
       }
       else {
         Serial.println(command);
-        Serial.println("LAUNCH ABORTED - FAILED AUTHORIZED");
+        Serial.println(F("LAUNCH ABORTED - FAILED AUTHORIZED"));
       }
 
     }
     else if (command.equals("A")) {
       BT_ABORT = 1;
-      Serial.println("ABORTING");
+      Serial.println(F("ABORTING"));
     }
     else {
-      Serial.println("Invalid command");
+      Serial.println(F("X Com"));
     }
   }
 
@@ -198,8 +205,7 @@ void loop()
   }
   // ABORT PROGRAM - When usin a ToogleSwitch
   else if (COUNTER_STATUS == 1 && buttonState == 1 && BT_AVAILABLE == 0) {
-    Serial.println("HOLD COUNTER");
-    Serial.println("RESET COUNTDOWN");
+    Serial.println(F("RESET COUNTDOWN"));
     COUNTER_STATUS = 0;
     counter = 0;
     BS_LOOP = 0;
@@ -210,8 +216,7 @@ void loop()
   }
   // ABORT PROGRAM - When using Bluetooth
   else if (buttonState == 1 && COUNTER_STATUS == 1 && BT_ABORT == 1) {
-    Serial.println("HOLD COUNTER");
-    Serial.println("RESET COUNTDOWN");
+    Serial.println(F("RESET COUNTDOWN"));
     COUNTER_STATUS = 0;
     counter = 0;
     BS_LOOP = 0;
@@ -237,8 +242,8 @@ void loop()
   {
 
     if (COUNTER_STATUS == 0 && BS_LOOP == 0) {
-      Serial.println("FIRE BUTTON ENABLED");
-      Serial.println("INITIATING LAUNCH PROGRAM! GODSPEED!");
+      Serial.println(F("FIRE BUTTON ENABLED"));
+      Serial.println(F("INITIATING LAUNCH PROGRAM. GODSPEED!"));
     }
 
     BS_LOOP = 1; // check for button loop to print above message.
@@ -246,30 +251,31 @@ void loop()
 
     //Check for file and loadcell error
 
-    if (mode == 2) {
+    if (mode == 2 && COUNTER_STATUS == 0)  {
 
       //CHECK COMPONENTS PASS 2
-      myFile = SD.open(filename, FILE_WRITE);
+      myFile = SD.open(filename, O_READ);
 
       scale.power_up();
       scale.set_scale(calibration_factor);
       scale.tare();
 
-#ifdef LOADCELL_CHECK
-    if (myFile == 0)
-    {
-      RED();
-      Serial.println("File - ERROR = 0");
-      while (1);
-    }
-    if (scale.read() < 1000)
-    {
-      RED();
-      Serial.println("Loadcel - ERROR = 0");
-      while (1);
-    }
-    Serial.println("Loadcel and SD Mod is set up");
-#endif
+      #ifdef LOADCELL_CHECK
+      if (myFile == 0)
+      {
+        RED();
+        Serial.println(F("File 0"));
+        while (1);
+      }
+      if (scale.read() < 1000)
+      {
+        RED();
+        Serial.println(F("Load 0"));
+        while (1);
+      }
+      Serial.println(F("Mods Set Up"));
+      myFile.close();
+      #endif
     }
 
     currentMillis = millis();
@@ -281,7 +287,7 @@ void loop()
       counter++;
 
       if (counter == 1) {
-        Serial.println("Starting a 10 second Timer!");
+        Serial.println(F("Starting a 10 second Timer!"));
         Serial.println(10 - counter);
         tone(buzzer, 3500, 500);
         digitalWrite(RLED, HIGH);
@@ -307,43 +313,34 @@ void loop()
       Serial.println("LAUNCH OFF");
       tone(buzzer, 4500, 2000);
       digitalWrite(RLED, HIGH);
-      digitalWrite(mos, HIGH);
-
-      previousMillis = 0;
 
       if (mode == 2) {
-        while (i < 200)
+        myFile = SD.open(filename, FILE_WRITE);
+        digitalWrite(mos, HIGH);
+        while (i < 100) //approx 9 seconds
         {
-          digitalWrite(mos, HIGH); // too dangerous.
-
-          Serial.println("While Loop");
-          //Time Instance
           currentMillis = millis();
 
-          if (currentMillis - previousMillis >= period) {
-            previousMillis = currentMillis;
+          // if (currentMillis - previousMillis >= 1) {
+          //   previousMillis = currentMillis;
 
-            time_ms++;  //not exactly realtime millisceconds.
-          }
-
-          Serial.println(time_ms);
+          //   timer++;
+          // }
           //Serial.println(scale.get_units(), 1);
-
           //write to sd card
           myFile.print(currentMillis);
-          myFile.print(",");
-          myFile.print(time_ms);
           myFile.print(",");
           myFile.println(scale.get_units(), 1);
 
           i++;
         }
+        myFile.flush();
       }
 
       if (mode == 1 && COUNTER_STATUS == 1) {
         digitalWrite(mos, HIGH);
         delay(5000);
-        Serial.println("M1 - LAUNCH PROGRAM ENDS");
+        Serial.println(F("M1 - LAUNCH PROGRAM ENDS"));
       }
 
       Fire_State = 1;
@@ -351,7 +348,7 @@ void loop()
       if (mode == 2) {
         myFile.close();
         scale.power_down();
-        Serial.println("M2 - LAUNCH PROGRAM ENDS");
+        Serial.println(F("M2 - LAUNCH PROGRAM ENDS"));
       }
 
 
@@ -428,10 +425,8 @@ void initializeSD()
 
     myFile.print("Time");
     myFile.print(",");
-    myFile.print("Time(ms)");
-    myFile.print(",");
     myFile.println("weight");
-
+    
     myFile.close();
     Serial.println(F("File Created and File Closed"));
   }
