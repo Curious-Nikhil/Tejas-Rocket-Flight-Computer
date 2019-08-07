@@ -52,8 +52,6 @@ void setup()
   pinMode(RLED, OUTPUT);
   pinMode(GLED, OUTPUT);
   pinMode(toggleButton, INPUT_PULLUP);
-  //attachInterrupt(5, ABORT, RISING);
-
 
   //Startup Sound
   tone(buzzer, 2000, 300);
@@ -314,7 +312,7 @@ void loop()
       previousMillis = 0;
 
       if (mode == 2) {
-        while (i < 100)
+        while (i < 200)
         {
           digitalWrite(mos, HIGH); // too dangerous.
 
@@ -465,6 +463,8 @@ void RED()
 void GREEN_IDLE() {
   //Everything is fine.. signal.
   unsigned long interval = 1000;
+
+  
   currentMillis = millis();
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
@@ -472,7 +472,13 @@ void GREEN_IDLE() {
 
     tone(7, 2500, 100);
 
+  //  cycle++;s
   }
+
+  // if (cycle%5 == 0) {
+  //   Serial.println(F("Standby.."));
+  // }
+
   digitalWrite(GLED, LOW);
   digitalWrite(RLED, LOW);
 }
