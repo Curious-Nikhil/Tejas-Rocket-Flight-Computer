@@ -8,7 +8,7 @@
 #define GLED 8 //Green Light
 
 //For Debug:
-//#define LOADCELL_CHECK
+#define LOADCELL_CHECK
 
 String command;
 int mode = 0;
