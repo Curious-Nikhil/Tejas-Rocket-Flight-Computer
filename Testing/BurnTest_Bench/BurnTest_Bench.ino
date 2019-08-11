@@ -317,7 +317,7 @@ void loop()
       if (mode == 2) {
         myFile = SD.open(filename, FILE_WRITE);
         digitalWrite(mos, HIGH);
-        while (i < 100) //approx 9 seconds
+        while (i < 200) //approx 9 seconds
         {
           currentMillis = millis();
 
@@ -339,7 +339,7 @@ void loop()
 
       if (mode == 1 && COUNTER_STATUS == 1) {
         digitalWrite(mos, HIGH);
-        delay(5000);
+        delay(10000);
         Serial.println(F("M1 - LAUNCH PROGRAM ENDS"));
       }
 
