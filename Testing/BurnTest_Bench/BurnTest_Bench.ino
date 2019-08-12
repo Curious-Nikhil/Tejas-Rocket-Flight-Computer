@@ -314,7 +314,7 @@ void loop()
       tone(buzzer, 4500, 2000);
       digitalWrite(RLED, HIGH);
 
-      if (mode == 2) {
+      if (mode == 2 && COUNTER_STATUS == 1) {
         myFile = SD.open(filename, FILE_WRITE);
         digitalWrite(mos, HIGH);
         while (i < 200) //approx 9 seconds
