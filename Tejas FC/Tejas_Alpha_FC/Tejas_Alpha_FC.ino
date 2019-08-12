@@ -43,6 +43,7 @@
 #define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
 #define RLED 6// Green LED
 #define GLED 7// Green LED
+#define buzzer 8
 
 
 MPU6050 mpu;
@@ -55,8 +56,7 @@ bool blinkState = false;
 // ================================================================
 // ===              BAROMETER                                   ===
 // ================================================================
-#define GLED 9
-#define RLED 6
+
 static float meters;
 float temperature;
 float pascal;
@@ -88,6 +88,17 @@ void setup() {
 
   Serial.begin(38400);
   Serial.println(F("I got to Setup"));
+
+  //Startup Sound
+  tone(buzzer, 2500, 300);
+  delay(1000);
+  tone(buzzer, 2000, 300);
+  delay(500);
+  tone(buzzer, 3000, 300);
+  tone(buzzer, 3500, 300);
+  delay(500);
+  tone(buzzer, 2500, 300);
+  delay(1000);
 
 #ifdef SERVO_MOD
   //Attach the servos
@@ -248,7 +259,7 @@ void initializeMPU() {
   // verify connection
   Serial.println("Testing device connections...");
   Serial.println(mpu.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
-  
+
 }
 
 // ================================================================
@@ -272,8 +283,8 @@ void loop() {
 // ================================================================
 
 void tejas_move(void) {
-  
-      mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+
+  mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
 }
 
@@ -338,7 +349,7 @@ void writeSD(unsigned long countsec, float meters, float pascal, float est_alt) 
     Serial.print(pascal);
     Serial.print(F(","));
     Serial.print(est_alt);
-    
+
 #endif
 
     //Writing in SD Card!
@@ -349,15 +360,15 @@ void writeSD(unsigned long countsec, float meters, float pascal, float est_alt) 
     myFile.print(pascal);
     myFile.print(",");
     myFile.print(est_alt);
-//    myFile.print(mpuPitch);
-//    myFile.print(",");
-//    myFile.print(mpuRoll);
-//    myFile.print(",");
-//    myFile.print(mpuYaw);
-//    myFile.print(",");
-//    myFile.print(OutputX);
-//    myFile.print(",");
-//    myFile.println(OutputY);
+    //    myFile.print(mpuPitch);
+    //    myFile.print(",");
+    //    myFile.print(mpuRoll);
+    //    myFile.print(",");
+    //    myFile.print(mpuYaw);
+    //    myFile.print(",");
+    //    myFile.print(OutputX);
+    //    myFile.print(",");
+    //    myFile.println(OutputY);
 
     delay(100);
 
@@ -400,14 +411,16 @@ void GRE() {
 void GREEN() {
 
   //Everything is fine.. signal.
-    unsigned long interval = 1000;
+  unsigned long interval = 1000;
+  unsigned long previousMillis;
   currentMillis = millis();
+  
   if (currentMillis - previousMillis > interval) {
     previousMillis = currentMillis;
 
     digitalWrite(GLED, HIGH);
 
-      tone(7, 2500, 100);
+    tone(7, 2500, 100);
 
   }
   else {
