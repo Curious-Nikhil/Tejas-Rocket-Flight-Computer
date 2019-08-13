@@ -2,19 +2,14 @@
 // == PHASE ZERO & ONE Devs ====
 //==============================
 
-/*Tejas Alpha - @Nikhil Mishra
+/*Tejas V1 - @Nikhil Mishra
    https://curious-nikhil.github.io/
    Tejas is a rocket computer
-   Tejas controls the pitch and the roll of the rocket
 */
 // =========================================
 // ==         CONFIGURATION              ==
 //==========================================
-//DATE
-#define DAY 02
-#define MONTH 07
-#define YEAR 2019
-#define VERSION 0.1
+
 
 //#define PID_MOD
 //#define SERVO_MOD
@@ -26,16 +21,11 @@
 //==============================
 
 //Header Files
-//#include <PID_v1.h>
-//#include <Servo.h> //servo library
 #include <I2Cdev.h>
 #include "MPU6050.h"
 #include <Wire.h>
 #include "i2c_BMP280.h"
 #include "SimpleKalmanFilter.h"
-
-//SD Card Libraries
-//#include <SPI.h>
 #include <SD.h>
 
 
@@ -45,6 +35,24 @@
 #define GLED 7// Green LED
 #define buzzer 8
 
+// =============================================
+// ===          MISC Global Vars             ===
+// =============================================
+
+//Timers Vars
+unsigned long startMillis;  //some global variables available anywhere in the program
+unsigned long currentMillis;
+unsigned long countsec;
+const unsigned long period = 100;  //no of ms.
+
+bool launch = false;
+bool pyro = false;
+bool landed = false;
+bool ABORT = false;
+
+// =============================================
+// ===              MPU Vars                 ===
+// =============================================
 
 MPU6050 mpu;
 
@@ -53,9 +61,16 @@ int16_t gx, gy, gz;
 
 bool blinkState = false;
 
-// ================================================================
-// ===              BAROMETER                                   ===
-// ================================================================
+
+//INTERRUPT DETECTION ROUTINE
+volatile bool mpuInterrupt = false;// indicates whether MPU interrupt pin has gone high
+void dmpDataReady() {
+  mpuInterrupt = true;
+}
+
+// =============================================
+// ===              BAROMETER                ===
+// =============================================
 
 static float meters;
 float temperature;
@@ -68,18 +83,6 @@ File myFile;
 BMP280 bmp280;
 SimpleKalmanFilter pressureKalmanFilter(1, 1, 0.01);
 
-//Timers Vars
-
-unsigned long startMillis;  //some global variables available anywhere in the program
-unsigned long currentMillis;
-unsigned long countsec;
-const unsigned long period = 100;  //no of ms.
-
-//INTERRUPT DETECTION ROUTINE
-volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
-void dmpDataReady() {
-  mpuInterrupt = true;
-}
 
 // ================================================================
 // ===               THE SETUP FUNCTION                       ===
@@ -87,7 +90,6 @@ void dmpDataReady() {
 void setup() {
 
   Serial.begin(38400);
-  Serial.println(F("I got to Setup"));
 
   //Startup Sound
   tone(buzzer, 2500, 300);
@@ -100,38 +102,73 @@ void setup() {
   tone(buzzer, 2500, 300);
   delay(1000);
 
-#ifdef SERVO_MOD
-  //Attach the servos
-  ServoX.attach(8);
-  ServoY.attach(10);
-
-  //Set the Servos to 90 Degrees
-  ServoX.write(45);
-  delay(1000);
-  ServoY.write(45);
-#endif
-
   // configure LED for output
   //pinMode(LED_PIN, OUTPUT);
   pinMode(GLED, OUTPUT);
   pinMode(RLED, OUTPUT);
 
-  Serial.println(FreeRam());
+  Serial.println(FreeRam()); //set a threshold for that.
 
-  //Initialize SD Module
+  //PASS 1
+  if (FreeRam() > 275) {
+    RED();
+    while(1);
+  }
+
+  // PASS 2: Initialize SD Module
   initializeSD();
 
-  //Initialize Gyroscope and Servo
-  //needs calibration method also.
+  //PASS 3: Initialize Gyroscope and Servo
+    //needs calibration method also.
   initializeMPU();
 
-  //Initialize Baromter
+  //PASS 3: Initialize Baromter
   initializeBMP();
+
+  //PASS 4: Pyro Check
+
+
 }
 
 // ================================================================
-// ===                INITIALIZE FUNCTION                       ===
+// ===                    MAIN LOOP                            ===
 // ================================================================
+void loop() {
+
+  if(launch = false && pyro = false && landed = false) {
+    GREEN();
+  }
+  
+  /*************
+   * Detect launch
+   * Enable ABORT - for extreame tilt.
+   * Detect Apogee
+   * * Fire Pyros
+   */
+
+  if (1) {
+    launch = true;
+
+    if (angle > 30) {
+      //eject pyros
+      ABORT = true;
+    }
+
+
+
+    //data log
+  } 
+  
+
+  //countTime();
+
+  altimeter();
+
+  //Data logging
+  writeSD(countsec, meters, pascal, est_alt);
+}
+
+
 
 // ================================================================
 // ===               SD CARD Begin                       ===
@@ -139,14 +176,14 @@ void setup() {
 
 void initializeSD() {
 
-  Serial.print(F("Initializing SD card..."));
+  Serial.print(F("InitSD"));
 
   if (!SD.begin(4)) {
-    Serial.println(F("initialization failed!"));
+    Serial.println(F("SDFAIL"));
     RED();
     while (1);
   }
-  Serial.println(F("initialization done."));
+  Serial.println(F("SDinit"));
 
 
   //      // create a new file
@@ -163,12 +200,13 @@ void initializeSD() {
 
   //Create a file with new name
   if (!loadSDFile()) {
-    Serial.println("Failed to create file");
+    Serial.println("Failed file");
     err = true;
     while (1);
+    RED();
   }
   else {
-    Serial.println("File name created!");
+    Serial.println("File created");
     RED();
   }
 
@@ -177,17 +215,6 @@ void initializeSD() {
   myFile = SD.open(filename, FILE_WRITE);
   Serial.println(myFile);
   if (myFile) {
-    //Print Date in File
-    myFile.print("V ");
-    myFile.println(VERSION);
-
-    myFile.print("Date: ");
-    myFile.print(DAY);
-    myFile.print(",");
-    myFile.print(MONTH);
-    myFile.print(",");
-    myFile.println(YEAR);
-
     //Print Header Files  - - meters, pascal, est_alt, mpuPitch, mpuRoll, mpuYaw, OutputX, OutputY
 
     myFile.print("Time");
@@ -207,10 +234,10 @@ void initializeSD() {
     myFile.println("OutputY");
 
     myFile.close();
-    Serial.println(F("File Created and File Closed"));
+    Serial.println(F("F-1"));
 
   } else {
-    Serial.print(F("Error while opening file"));
+    Serial.print(F("F-0"));
     RED();
     while (1);
   }
@@ -222,11 +249,11 @@ void initializeSD() {
 
 void initializeBMP() {
 
-  Serial.print(F("Probe BMP280: "));
-  if (bmp280.initialize()) Serial.println(F("Sensor found"));
+  Serial.print(F("InintBMP"));
+  if (bmp280.initialize()) Serial.println(F("BMP1")); //sensor found
   else
   {
-    Serial.println(F("Sensor missing"));
+    Serial.println(F("BMP0")); //Sensor not found
     err = true;
     RED();
     while (1) {}
@@ -243,7 +270,7 @@ void initializeBMP() {
   bmp280.setEnabled(0);
   bmp280.triggerMeasurement();
 
-  Serial.println(F("BMP Initialized!"));
+  Serial.println(F("BMPInit1"));
 }
 
 
@@ -262,32 +289,6 @@ void initializeMPU() {
 
   //incomplete. add a RED FUNCTION
 }
-
-// ================================================================
-// ===                    MAIN LOOP                            ===
-// ================================================================
-void loop() {
-
-  countTime();
-
-  //Serial.println(countsec);
-  altimeter();
-  //tejas_move();
-
-  //Data logging
-  writeSD(countsec, meters, pascal, est_alt);
-}
-
-// ================================================================
-// ===                            MPU6050                       ===
-// ================================================================
-
-void tejas_move(void) {
-
-  mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-
-}
-
 
 // ================================================================
 // ===           ALTIMETER - BAROMETER & KALMAN FILTER          ===
