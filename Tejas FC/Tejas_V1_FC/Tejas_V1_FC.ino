@@ -52,7 +52,9 @@ bool landed = false;
 bool ABORT = false;
 
 int lastAlt = 0;
-
+unsigned long launchTime = 0;
+unsigned long ApoTime = 0;
+unsigned long landTime = 0;
 // =============================================
 // ===              MPU Vars                 ===
 // =============================================
@@ -142,7 +144,7 @@ void loop() {
   //Disable Pyros
   digitalWrite(pyroPin, LOW);
   
-  if(launch = false && pyro = false && landed = false) {
+  if(launch == false && pyro == false && landed == false) {
     GREEN();
   }
   
@@ -154,7 +156,7 @@ void loop() {
    * Flight Log
    */
 
-  if (1/* gyro or bmp alt variations */ || launch = true && landed = false) {
+  if (1/* gyro or bmp alt variations */ || launch == true && landed == false) {
     launch = true;
     //Open File here.
     //ABORT PROGRAM!
@@ -166,19 +168,19 @@ void loop() {
     //APOGEE DETECTION PROGRAM
     bmp280.getAltitude(alt);
 
-    if (alt - lastAlt <= -1 && pyro = false && launch = true && pyroFired = false) {
+    if (alt - lastAlt <= -1 && pyro == false && launch == true && pyroFired == false) {
       //check for a meter drop
       //Store time of Apogee Trigger 1
       delay(150);
       bmp280.getAltitude(alt);
 
-      if(alt - lastAlt <= -2 && pyro = false && launch = true && pyroFired = false) {
+      if(alt - lastAlt <= -2 && pyro == false && launch == true && pyroFired == false) {
         //check for 2 meter drop
         //Store time of Apogee Trigger 1
 
         delay(150);
         bmp280.getAltitude(alt);
-        if(alt - lastAlt <= -3 && pyro = false && launch = true && pyroFired = false) {
+        if(alt - lastAlt <= -3 && pyro == false && launch == true && pyroFired == false) {
           //PASS 3
           //Store time of Apogee Pyro Fire
           //Fire Pyros!
@@ -197,17 +199,22 @@ void loop() {
     //writeSD();
   } 
 
-  if (pyro = true && launch = true && pyroFired = false) {
+  if (pyro == true && launch == true && pyroFired == false) {
 
     digitalWrite(RLED, HIGH);
+
+    ApoTime = millis();
     delay(1000);
     pyroFired = true;
+
   }
 
-  if (launch = true && pyro = true;/*height or gyro vals check */) {
+  if (launch == true && pyro == true;/*height or gyro vals check */) {
     //Landed program
     //Store Landing time.
     landed = true;
+
+
   }
   
 }//voidloop end
@@ -227,19 +234,6 @@ void initializeSD() {
     while (1);
   }
   Serial.println(F("SDinit"));
-
-
-  //      // create a new file
-  //    char filename[] = "LOGGER00.txt";
-  //    for (uint8_t i = 0; i < 100; i++) {
-  //      filename[6] = i/10 + '0';
-  //      filename[7] = i%10 + '0';
-  //      if (! SD.exists(filename)) {
-  //        // only open a new file if it doesn't exist
-  //        myFile = SD.open(filename, FILE_WRITE);
-  //        break;  // leave the loop!
-  //      }
-  //    }
 
   //Create a file with new name
   if (!loadSDFile()) {
@@ -402,28 +396,31 @@ void writeSD(unsigned long countsec, float alt, float pascal, float est_alt) {
     //Writing in SD Card!
     myFile.print(countsec);
     myFile.print(",");
-    myFile.print(alt);
-    myFile.print(",");
     myFile.print(pascal);
     myFile.print(",");
+    myFile.print(alt);
+    myFile.print(",");
     myFile.print(est_alt);
-    //    myFile.print(mpuPitch);
-    //    myFile.print(",");
-    //    myFile.print(mpuRoll);
-    //    myFile.print(",");
-    //    myFile.print(mpuYaw);
-    //    myFile.print(",");
-    //    myFile.print(OutputX);
-    //    myFile.print(",");
-    //    myFile.println(OutputY);
+    myFile.print(",");
+    // myFile.print(mpuPitch);
+    // myFile.print(",");
+    // myFile.print(mpuRoll);
+    // myFile.print(",");
+    // myFile.print(mpuYaw);
+    // myFile.print(",");
+    myFile.print(launchTime);
+    myFile.print(",");
+    myFile.print(ApoTime);
+    myFile.print(",");
+    myFile.println(landTime);
 
     delay(10);
+
+
   } else {
     #ifdef SERIAL_DEBUG
     Serial.println(F("error Opening the txt file"));
     #endif
-    err = true;
-    while (1);
   }
 }
 
