@@ -429,7 +429,7 @@ void writeSD(unsigned long countsec, float alt, float pascal, float est_alt) {
 // ===                  MISC FUNCTIONS                          ===
 // ================================================================
 
-//Counts time passed since FC started.
+//WRONG!!!!!!!!!!!!!!!!!!
 void countTime() {
   currentMillis = millis();  //get the current "time" (actually the number of milliseconds since the program started)
   if (currentMillis - startMillis >= period)  //test whether the period has elapsed
