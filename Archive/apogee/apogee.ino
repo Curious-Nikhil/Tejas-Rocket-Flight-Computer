@@ -1,11 +1,12 @@
-
 #include <SPI.h>
 #include <SD.h>
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BMP085_U.h>
 #include <Servo.h>
+
 File myFile; //creates a file to be written to
+
 Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085); // sets up the BMP180
 int altitude;
 int lastAltitude;

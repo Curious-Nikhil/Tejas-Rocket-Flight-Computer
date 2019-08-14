@@ -34,7 +34,7 @@
 #define RLED 6// Green LED
 #define GLED 7// Green LED
 #define buzzer 8
-
+#define pyroPin 9
 // =============================================
 // ===          MISC Global Vars             ===
 // =============================================
@@ -47,8 +47,11 @@ const unsigned long period = 100;  //no of ms.
 
 bool launch = false;
 bool pyro = false;
+bool pyroFired = false;
 bool landed = false;
 bool ABORT = false;
+
+int lastAlt = 0;
 
 // =============================================
 // ===              MPU Vars                 ===
@@ -72,7 +75,7 @@ void dmpDataReady() {
 // ===              BAROMETER                ===
 // =============================================
 
-static float meters;
+static float alt;
 float temperature;
 float pascal;
 float est_alt;
@@ -106,11 +109,13 @@ void setup() {
   //pinMode(LED_PIN, OUTPUT);
   pinMode(GLED, OUTPUT);
   pinMode(RLED, OUTPUT);
+  pinMode(pyroPin, OUTPUT);
 
   Serial.println(FreeRam()); //set a threshold for that.
 
   //PASS 1
   if (FreeRam() > 275) {
+    Serial.println(F("RAM-0"));
     RED();
     while(1);
   }
@@ -134,7 +139,9 @@ void setup() {
 // ===                    MAIN LOOP                            ===
 // ================================================================
 void loop() {
-
+  //Disable Pyros
+  digitalWrite(pyroPin, LOW);
+  
   if(launch = false && pyro = false && landed = false) {
     GREEN();
   }
@@ -144,30 +151,66 @@ void loop() {
    * Enable ABORT - for extreame tilt.
    * Detect Apogee
    * * Fire Pyros
+   * Flight Log
    */
 
-  if (1) {
+  if (1/* gyro or bmp alt variations */ || launch = true && landed = false) {
     launch = true;
-
+    //Open File here.
+    //ABORT PROGRAM!
     if (angle > 30) {
       //eject pyros
       ABORT = true;
     }
+    
+    //APOGEE DETECTION PROGRAM
+    bmp280.getAltitude(alt);
 
+    if (alt - lastAlt <= -1 && pyro = false && launch = true && pyroFired = false) {
+      //check for a meter drop
+      //Store time of Apogee Trigger 1
+      delay(150);
+      bmp280.getAltitude(alt);
 
+      if(alt - lastAlt <= -2 && pyro = false && launch = true && pyroFired = false) {
+        //check for 2 meter drop
+        //Store time of Apogee Trigger 1
 
-    //data log
+        delay(150);
+        bmp280.getAltitude(alt);
+        if(alt - lastAlt <= -3 && pyro = false && launch = true && pyroFired = false) {
+          //PASS 3
+          //Store time of Apogee Pyro Fire
+          //Fire Pyros!
+          pyro = true;
+        }else {
+          lastAlt = alt;
+        }
+      }else{
+        lastAlt = alt;
+      }
+    }
+    else{
+      lastAlt = alt;
+    }
+    //Flight Logs
+    //writeSD();
   } 
+
+  if (pyro = true && launch = true && pyroFired = false) {
+
+    digitalWrite(RLED, HIGH);
+    delay(1000);
+    pyroFired = true;
+  }
+
+  if (launch = true && pyro = true;/*height or gyro vals check */) {
+    //Landed program
+    //Store Landing time.
+    landed = true;
+  }
   
-
-  //countTime();
-
-  altimeter();
-
-  //Data logging
-  writeSD(countsec, meters, pascal, est_alt);
-}
-
+}//voidloop end
 
 
 // ================================================================
@@ -200,13 +243,13 @@ void initializeSD() {
 
   //Create a file with new name
   if (!loadSDFile()) {
-    Serial.println("Failed file");
+    Serial.println(F("F-0"));
     err = true;
     while (1);
     RED();
   }
   else {
-    Serial.println("File created");
+    Serial.println(F("F-1"));
     RED();
   }
 
@@ -215,7 +258,7 @@ void initializeSD() {
   myFile = SD.open(filename, FILE_WRITE);
   Serial.println(myFile);
   if (myFile) {
-    //Print Header Files  - - meters, pascal, est_alt, mpuPitch, mpuRoll, mpuYaw, OutputX, OutputY
+    //Print Header Files  - - alt, pascal, est_alt, mpuPitch, mpuRoll, mpuYaw, OutputX, OutputY
 
     myFile.print("Time");
     myFile.print(",");
@@ -229,9 +272,12 @@ void initializeSD() {
     myFile.print(",");
     myFile.print("mpuYaw");
     myFile.print(",");
-    myFile.print("OutputX");
+    myFile.print("launch");
     myFile.print(",");
-    myFile.println("OutputY");
+    myFile.print("Apogee");
+    myFile.print(",");
+    myFile.println("landed");
+ 
 
     myFile.close();
     Serial.println(F("F-1"));
@@ -301,11 +347,11 @@ void altimeter() {
 
   bmp280.getTemperature(temperature);  // throw away - needed for alt.
   bmp280.getPressure(pascal);     // throw away - needed for alt.
-  bmp280.getAltitude(meters);
+  bmp280.getAltitude(alt);
 
-  float est_alt = pressureKalmanFilter.updateEstimate(meters);
+  float est_alt = pressureKalmanFilter.updateEstimate(alt);
 
-  Serial.print(meters);
+  Serial.print(alt);
   Serial.print(",");
   Serial.print(pascal);
   Serial.print(",");
@@ -333,8 +379,8 @@ boolean loadSDFile() {
 
   return file;
 }
-// meters, pascal, est_alt
-void writeSD(unsigned long countsec, float meters, float pascal, float est_alt) {
+// alt, pascal, est_alt
+void writeSD(unsigned long countsec, float alt, float pascal, float est_alt) {
 
   Serial.println(F("got to WriteSD fn"));
   myFile = SD.open(filename, FILE_WRITE);
@@ -342,21 +388,21 @@ void writeSD(unsigned long countsec, float meters, float pascal, float est_alt) 
   if (myFile) {
     //Serial Prints
 
-#ifdef SERIAL_DEBUG
+    #ifdef SERIAL_DEBUG
     Serial.print(countsec);
     Serial.print(F(","));
-    Serial.print(meters);
+    Serial.print(alt);
     Serial.print(F(","));
     Serial.print(pascal);
     Serial.print(F(","));
     Serial.print(est_alt);
 
-#endif
+    #endif
 
     //Writing in SD Card!
     myFile.print(countsec);
     myFile.print(",");
-    myFile.print(meters);
+    myFile.print(alt);
     myFile.print(",");
     myFile.print(pascal);
     myFile.print(",");
@@ -371,14 +417,11 @@ void writeSD(unsigned long countsec, float meters, float pascal, float est_alt) 
     //    myFile.print(",");
     //    myFile.println(OutputY);
 
-    delay(100);
-
-    myFile.close();
-
+    delay(10);
   } else {
-#ifdef SERIAL_DEBUG
+    #ifdef SERIAL_DEBUG
     Serial.println(F("error Opening the txt file"));
-#endif
+    #endif
     err = true;
     while (1);
   }
