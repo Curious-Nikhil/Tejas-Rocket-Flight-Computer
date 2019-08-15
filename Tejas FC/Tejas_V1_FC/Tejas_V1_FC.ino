@@ -15,7 +15,7 @@
 //#define SERVO_MOD
 //#define DMP_MOD
 #define SERIAL_DEBUG
-
+//#define MPU_CALBIRATION
 // =============================
 // == Include and Define Vars ==
 //==============================
@@ -40,12 +40,10 @@
 // =============================================
 
 //Timers Vars
-unsigned long startMillis;  //some global variables available anywhere in the program
-unsigned long currentMillis;
-unsigned long countsec;
-const unsigned long period = 100;  //no of ms.
+unsigned long previousMillis = 0;
 
-bool launch = false;
+
+bool launch = 0;
 bool pyro = false;
 bool pyroFired = false;
 bool landed = false;
@@ -59,34 +57,37 @@ unsigned long landTime = 0;
 // ===              MPU Vars                 ===
 // =============================================
 
-MPU6050 mpu;
+MPU6050 accelgyro;
 
 int16_t ax, ay, az;
 int16_t gx, gy, gz;
 
-bool blinkState = false;
-
 
 //INTERRUPT DETECTION ROUTINE
-volatile bool mpuInterrupt = false;// indicates whether MPU interrupt pin has gone high
-void dmpDataReady() {
-  mpuInterrupt = true;
-}
+// volatile bool mpuInterrupt = false;// indicates whether MPU interrupt pin has gone high
+// void dmpDataReady() {
+//   mpuInterrupt = true;
+// }
 
 // =============================================
 // ===              BAROMETER                ===
 // =============================================
-
-static float alt;
-float temperature;
-float pascal;
-float est_alt;
-bool err = false;
-String filename;
-File myFile;
-
 BMP280 bmp280;
 SimpleKalmanFilter pressureKalmanFilter(1, 1, 0.01);
+
+static float alt;
+float est_alt;
+float temperature;
+float pascal;
+float base_alt;
+// =============================================
+// ===              SD CARD                  ===
+// =============================================
+String filename;
+File myFile;
+int sd_count = 0; 
+bool FL = false;
+
 
 
 // ================================================================
@@ -97,15 +98,16 @@ void setup() {
   Serial.begin(38400);
 
   //Startup Sound
-  tone(buzzer, 2500, 300);
-  delay(1000);
-  tone(buzzer, 2000, 300);
-  delay(500);
-  tone(buzzer, 3000, 300);
-  tone(buzzer, 3500, 300);
-  delay(500);
-  tone(buzzer, 2500, 300);
-  delay(1000);
+  // tone(buzzer, 2500, 300);
+  // delay(1000);
+  // tone(buzzer, 2000, 300);
+  // delay(500);
+  // tone(buzzer, 3000, 300);
+  // tone(buzzer, 3500, 300);
+  // delay(500);
+  // tone(buzzer, 2500, 300);
+  // delay(1000);
+  delay(2000);
 
   // configure LED for output
   //pinMode(LED_PIN, OUTPUT);
@@ -115,8 +117,8 @@ void setup() {
 
   Serial.println(FreeRam()); //set a threshold for that.
 
-  //PASS 1
-  if (FreeRam() > 275) {
+  //PASS 1 -- confirm the size.
+  if (FreeRam() < 275) {
     Serial.println(F("RAM-0"));
     RED();
     while(1);
@@ -134,6 +136,23 @@ void setup() {
 
   //PASS 4: Pyro Check
 
+  //Get baseline alt
+  // float sum = 0;
+  // delay(5000);
+  // for (int i=0; i < 30; i++) {
+
+  //   delay(100);
+
+  //   bmp280.getAltitude(base_alt);
+  //   sum += base_alt;
+  //   Serial.println(base_alt);
+  // }
+
+  // base_alt = sum/30.0;
+  // Serial.print(F("BASEH: "));
+  // Serial.println(base_alt);
+
+  // delay(1000);
 
 }
 
@@ -145,7 +164,7 @@ void loop() {
   digitalWrite(pyroPin, LOW);
   
   if(launch == false && pyro == false && landed == false) {
-    GREEN();
+    //GREEN();
   }
   
   /*************
@@ -155,52 +174,76 @@ void loop() {
    * * Fire Pyros
    * Flight Log
    */
+  get_alt();
+  // Serial.print(F("BASEH: "));
+  // Serial.println(base_alt);
+  // Serial.print(F("Est_Alt: "));
+  // Serial.println(est_alt);
 
-  if (1/* gyro or bmp alt variations */ || launch == true && landed == false) {
-    launch = true;
+  motion();
+
+  if (launch == 0) {
+    Serial.println(ay);
+  }
+
+  if (ay > 10000 || launch == true && landed == false) {
+    if (launch == 0) {
+      Serial.println(F("LAUNCH! ! !"));
+      launchTime = millis();
+
+      myFile = SD.open(filename, FILE_WRITE);
+      Serial.println(filename + myFile);
+      delay(3000);
+    }
+    Serial.println("LAUNCH");
+    Serial.println(launchTime);
+    Serial.println("bool: " + launch);
+    
+    launch = 1;
     //Open File here.
     //ABORT PROGRAM!
-    if (angle > 30) {
-      //eject pyros
-      ABORT = true;
-    }
+    // if (angle > 30) {
+    //   //eject pyros
+    //   ABORT = true;
+    // }
     
     //APOGEE DETECTION PROGRAM
-    bmp280.getAltitude(alt);
+    get_alt();
 
-    if (alt - lastAlt <= -1 && pyro == false && launch == true && pyroFired == false) {
+    if (est_alt - lastAlt <= -1 && pyro == false && launch == true && pyroFired == false) {
       //check for a meter drop
       //Store time of Apogee Trigger 1
       delay(150);
-      bmp280.getAltitude(alt);
+      get_alt();
+      Serial.println(F("P1"));
 
-      if(alt - lastAlt <= -2 && pyro == false && launch == true && pyroFired == false) {
+      if(est_alt - lastAlt <= -2 && pyro == false && launch == true && pyroFired == false) {
         //check for 2 meter drop
         //Store time of Apogee Trigger 1
 
         delay(150);
-        bmp280.getAltitude(alt);
-        if(alt - lastAlt <= -3 && pyro == false && launch == true && pyroFired == false) {
+        get_alt();
+        Serial.println(F("P2"));
+        if(est_alt - lastAlt <= -3 && pyro == false && launch == true && pyroFired == false) {
           //PASS 3
           //Store time of Apogee Pyro Fire
           //Fire Pyros!
           pyro = true;
+          Serial.println(F("P3"));
         }else {
-          lastAlt = alt;
+          lastAlt = est_alt;
         }
       }else{
-        lastAlt = alt;
+        lastAlt = est_alt;
       }
     }
     else{
-      lastAlt = alt;
+      lastAlt = est_alt;
     }
-    //Flight Logs
-    //writeSD();
   } 
 
   if (pyro == true && launch == true && pyroFired == false) {
-
+    Serial.println(F("pyro"));
     digitalWrite(RLED, HIGH);
 
     ApoTime = millis();
@@ -209,14 +252,40 @@ void loop() {
 
   }
 
-  if (launch == true && pyro == true;/*height or gyro vals check */) {
-    //Landed program
-    //Store Landing time.
+  if (ay <10000 && launch == true && pyro == true) {
+    //Land PROGRAM
+
+    if(landed =! true) {
+      //Store Landing time ONCE!
+      landTime = millis();
+    }
     landed = true;
-
-
   }
-  
+
+  //Flight Logs
+
+  if (launch == true) {
+    //Flight Logs
+    // if (FL = false) {
+    //   myFile = SD.open(filename, FILE_WRITE);
+    // }
+    
+    myFile = SD.open(filename, FILE_WRITE);
+
+    writeSD(pascal, alt, est_alt, ax, ay, az, gx, gy, gz, launchTime, ApoTime, landTime);
+    sd_count++;
+
+    if (sd_count > 100) {
+      myFile.flush();
+      sd_count = 0;
+    }
+
+    if (landed == true) {
+      myFile.close();
+    }
+    
+    FL = true;
+  }
 }//voidloop end
 
 
@@ -238,7 +307,6 @@ void initializeSD() {
   //Create a file with new name
   if (!loadSDFile()) {
     Serial.println(F("F-0"));
-    err = true;
     while (1);
     RED();
   }
@@ -258,13 +326,19 @@ void initializeSD() {
     myFile.print(",");
     myFile.print("Pascal");
     myFile.print(",");
-    myFile.print("Kalman_Height");
+    myFile.print("KH");
     myFile.print(",");
-    myFile.print("mpuPitch");
+    myFile.print("ax");
     myFile.print(",");
-    myFile.print("mpuRoll");
+    myFile.print("ay");
     myFile.print(",");
-    myFile.print("mpuYaw");
+    myFile.print("az");
+    myFile.print(",");
+    myFile.print("gx");
+    myFile.print(",");
+    myFile.print("gy");
+    myFile.print(",");
+    myFile.print("gz");
     myFile.print(",");
     myFile.print("launch");
     myFile.print(",");
@@ -274,10 +348,10 @@ void initializeSD() {
  
 
     myFile.close();
-    Serial.println(F("F-1"));
+    Serial.println(F("Fin-1"));
 
   } else {
-    Serial.print(F("F-0"));
+    Serial.print(F("Fin-0"));
     RED();
     while (1);
   }
@@ -294,7 +368,6 @@ void initializeBMP() {
   else
   {
     Serial.println(F("BMP0")); //Sensor not found
-    err = true;
     RED();
     while (1) {}
   }
@@ -315,42 +388,67 @@ void initializeBMP() {
 
 
 // =========================================================
-// ===                          DMP                      ===
+// ===                          MPU init                      ===
 // ==========================================================
 
 void initializeMPU() {
+// initialize device
+    Serial.println("Initializing I2C devices...");
+    accelgyro.initialize();
 
-  Serial.println("Initializing I2C devices...");
-  mpu.initialize();
+    // verify connection
+    Serial.println("Testing device connections...");
+    Serial.println(accelgyro.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
 
-  // verify connection
-  Serial.println("Testing device connections...");
-  Serial.println(mpu.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
-
-  //incomplete. add a RED FUNCTION
+    #ifdef MPU_CALBIRATION 
+    Serial.println("Updating internal sensor offsets...");
+    // -76	-2359	1688	0	0	0
+    Serial.print(accelgyro.getXAccelOffset()); Serial.print("\t"); // -76
+    Serial.print(accelgyro.getYAccelOffset()); Serial.print("\t"); // -2359
+    Serial.print(accelgyro.getZAccelOffset()); Serial.print("\t"); // 1688
+    Serial.print(accelgyro.getXGyroOffset()); Serial.print("\t"); // 0
+    Serial.print(accelgyro.getYGyroOffset()); Serial.print("\t"); // 0
+    Serial.print(accelgyro.getZGyroOffset()); Serial.print("\t"); // 0
+    Serial.print("\n");
+    // accelgyro.setXGyroOffset(220);
+    // accelgyro.setYGyroOffset(76);
+    // accelgyro.setZGyroOffset(-85);
+    Serial.print(accelgyro.getXAccelOffset()); Serial.print("\t"); // -76
+    Serial.print(accelgyro.getYAccelOffset()); Serial.print("\t"); // -2359
+    Serial.print(accelgyro.getZAccelOffset()); Serial.print("\t"); // 1688
+    Serial.print(accelgyro.getXGyroOffset()); Serial.print("\t"); // 0
+    Serial.print(accelgyro.getYGyroOffset()); Serial.print("\t"); // 0
+    Serial.print(accelgyro.getZGyroOffset()); Serial.print("\t"); // 0
+    Serial.print("\n");
+    #endif
 }
 
+void motion() {
+  accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+}
 // ================================================================
 // ===           ALTIMETER - BAROMETER & KALMAN FILTER          ===
 // ================================================================
 
-void altimeter() {
+// void altimeter() {
 
-  bmp280.setEnabled(0);
-  bmp280.triggerMeasurement();
+//   bmp280.setEnabled(0);
+//   bmp280.triggerMeasurement();
 
-  bmp280.getTemperature(temperature);  // throw away - needed for alt.
-  bmp280.getPressure(pascal);     // throw away - needed for alt.
-  bmp280.getAltitude(alt);
+//   bmp280.getTemperature(temperature);  // throw away - needed for alt.
+//   bmp280.getPressure(pascal);     // throw away - needed for alt.
+//   bmp280.getAltitude(alt);
 
-  float est_alt = pressureKalmanFilter.updateEstimate(alt);
+//   float est_alt = pressureKalmanFilter.updateEstimate(alt);
 
-  Serial.print(alt);
-  Serial.print(",");
-  Serial.print(pascal);
-  Serial.print(",");
-  Serial.println(est_alt);
-}
+//   Serial.print(alt);
+//   Serial.print(",");
+//   Serial.print(pascal);
+//   Serial.print(",");
+//   Serial.println(est_alt);
+// }
+
+
 // ================================================================
 // ===           SD CARD WRITE AND STUFF                        ===
 // ================================================================
@@ -374,27 +472,17 @@ boolean loadSDFile() {
   return file;
 }
 // alt, pascal, est_alt
-void writeSD(unsigned long countsec, float alt, float pascal, float est_alt) {
+void writeSD(float pascal, float alt, float est_alt, 
+  int16_t ax, int16_t ay, int16_t az, 
+  int16_t gx, int16_t gy, int16_t gz, 
+  unsigned long launchTime, unsigned long ApoTime, 
+  unsigned long landTime) {
 
-  Serial.println(F("got to WriteSD fn"));
   myFile = SD.open(filename, FILE_WRITE);
 
   if (myFile) {
-    //Serial Prints
-
-    #ifdef SERIAL_DEBUG
-    Serial.print(countsec);
-    Serial.print(F(","));
-    Serial.print(alt);
-    Serial.print(F(","));
-    Serial.print(pascal);
-    Serial.print(F(","));
-    Serial.print(est_alt);
-
-    #endif
-
     //Writing in SD Card!
-    myFile.print(countsec);
+    myFile.print(millis());
     myFile.print(",");
     myFile.print(pascal);
     myFile.print(",");
@@ -402,24 +490,26 @@ void writeSD(unsigned long countsec, float alt, float pascal, float est_alt) {
     myFile.print(",");
     myFile.print(est_alt);
     myFile.print(",");
-    // myFile.print(mpuPitch);
-    // myFile.print(",");
-    // myFile.print(mpuRoll);
-    // myFile.print(",");
-    // myFile.print(mpuYaw);
-    // myFile.print(",");
+    myFile.print(ax);
+    myFile.print(",");
+    myFile.print(ay);
+    myFile.print(",");
+    myFile.print(az);
+    myFile.print(",");
+    myFile.print(gx);
+    myFile.print(",");
+    myFile.print(gy);
+    myFile.print(",");
+    myFile.print(gz);
     myFile.print(launchTime);
     myFile.print(",");
     myFile.print(ApoTime);
     myFile.print(",");
     myFile.println(landTime);
 
-    delay(10);
-
-
   } else {
     #ifdef SERIAL_DEBUG
-    Serial.println(F("error Opening the txt file"));
+    Serial.println(F("F-0"));
     #endif
   }
 }
@@ -429,15 +519,6 @@ void writeSD(unsigned long countsec, float alt, float pascal, float est_alt) {
 // ===                  MISC FUNCTIONS                          ===
 // ================================================================
 
-//WRONG!!!!!!!!!!!!!!!!!!
-void countTime() {
-  currentMillis = millis();  //get the current "time" (actually the number of milliseconds since the program started)
-  if (currentMillis - startMillis >= period)  //test whether the period has elapsed
-  {
-    countsec = currentMillis;
-    startMillis = currentMillis;
-  }
-}
 
 void RED()
 {
@@ -458,17 +539,23 @@ void RED()
 void GREEN() {
   //Everything is fine.. signal.
   unsigned long interval = 1000;
-  unsigned long previousMillis;
-  currentMillis = millis();
-  
+  unsigned long currentMillis = millis();
+
   if (currentMillis - previousMillis > interval) {
     previousMillis = currentMillis;
-
+    
     digitalWrite(GLED, HIGH);
-
-    tone(7, 2500, 100);
+    tone(buzzer, 2500, 100);
   }
   else {
     digitalWrite(GLED, LOW);
   }
+}
+
+void get_alt() {
+  bmp280.getAltitude(alt);
+  bmp280.getPressure(pascal);
+  est_alt = pressureKalmanFilter.updateEstimate(alt);
+
+  return est_alt;
 }

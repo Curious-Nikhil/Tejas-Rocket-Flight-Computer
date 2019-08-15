@@ -83,7 +83,7 @@ void loop() {
         myservo.write(180); // Moves servo to deploy parachute
         Serial.println("                         DEPLOYING");
         bmp.getTemperature(&temperature);
-        apogeeTemp = temperature;
+        apogeeTemp = tempera ture;
         myFile = SD.open("data.txt", FILE_WRITE);
         myFile.println("Parachute deploying!");
         myFile.close();
