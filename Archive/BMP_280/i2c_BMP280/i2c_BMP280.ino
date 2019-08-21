@@ -1,4 +1,5 @@
 #include <Wire.h>
+#include "MPU6050.h"
 #include "i2c.h"
 #include "i2c_BMP280.h"
 #include "SimpleKalmanFilter.h"
@@ -14,13 +15,19 @@ SimpleKalmanFilter pressureKalmanFilter(1, 1, 0.01);
 static float meters;
 float temperature;
 float pascal;
-
+int sdcount = 0;
 bool err = false;
 String filename; 
 File dataFile;
 
+MPU6050 accelgyro;
+
+int16_t ax, ay, az;
+int16_t gx, gy, gz;
+
 void setup()
 {
+  delay(5000);
     Serial.begin(38400);
 
     Serial.print("Probe BMP280: ");
@@ -41,7 +48,7 @@ void setup()
 
     // onetime-measure:
     bmp280.setEnabled(0);
-    bmp280.triggerMeasurement();\
+    bmp280.triggerMeasurement();
 
     // see if the card is present and can be initialized:
     if (!SD.begin(4)) {
@@ -64,22 +71,32 @@ void setup()
     pinMode(GLED, OUTPUT);
     pinMode(RLED, OUTPUT);
     
-    //Error Conditions/Check
-    if (err) {
-      digitalWrite(RLED, HIGH);
-    }
-    else {
-      digitalWrite(GLED, HIGH);
-      }
-      
+
     //Print Header Files
     dataFile = SD.open(filename, FILE_WRITE);
-    dataFile.print("Height");
+
+    dataFile.print("Time");
+    dataFile.print(",");    
+    dataFile.print("Alt");
     dataFile.print(",");
-    dataFile.print("Kalman Est Alt");
+    dataFile.print("KMAlt");
     dataFile.print(",");
-    dataFile.println("Pascal");
+    dataFile.print("Pascal");
+    dataFile.print(",");
+    dataFile.print("ax");   
+    dataFile.print(",");
+    dataFile.print("ay");
+    dataFile.print(",");
+    dataFile.println("az");
+
     dataFile.close();
+
+    accelgyro.initialize();
+
+    // verify connection
+    Serial.println("Testing device connections...");
+    Serial.println(accelgyro.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+
 }
 
 void loop()
@@ -87,22 +104,53 @@ void loop()
     bmp280.setEnabled(0);
     bmp280.triggerMeasurement();
 
-    bmp280.getTemperature(temperature);  // throw away - needed for alt.
-    bmp280.getPressure(pascal);     // throw away - needed for alt.
-    bmp280.getAltitude(meters);
+    get_alt();
+
+    accelgyro.getAcceleration(&ax, &ay, &az);
 
     float est_alt = pressureKalmanFilter.updateEstimate(meters);
     
     //Data Logging
-    writeSD(meters, pascal, est_alt);
+      dataFile = SD.open(filename, FILE_WRITE);
 
-    if (err) {
-      digitalWrite(RLED, HIGH);
-    }
-    else {
-      digitalWrite(GLED, HIGH);
-      }
+      Serial.println(FreeRam());
+
+      if (dataFile) {
+      //Serial Prints
+      Serial.print(meters);
+      Serial.print(",");
+      Serial.print(pascal);
+      Serial.print(",");
+      Serial.println(est_alt);
       
+      //Writing in SD Card!
+      dataFile.print(millis());
+      dataFile.print(",");
+      dataFile.print(meters);   
+      dataFile.print(",");
+      dataFile.print(est_alt);
+      dataFile.print(",");
+      dataFile.print(pascal);
+      dataFile.print(",");
+      dataFile.print(ax);   
+      dataFile.print(",");
+      dataFile.print(ay);
+      dataFile.print(",");
+      dataFile.println(az);
+      dataFile.close();
+      sdcount++;
+
+      if (sdcount > 100) {
+        dataFile.flush();
+        sdcount = 0;
+      }
+      delay(10);
+
+      } else {
+      Serial.println("error Opening the txt file");
+      err = true;
+      }
+
 }
 
 boolean loadSDFile() {
@@ -110,7 +158,7 @@ boolean loadSDFile() {
   boolean file = false;
 
   while(!file && i < 1024) {
-    filename = (String)i + "datalog.txt";
+    filename = (String)i + "FLT.csv";
 
     if (!SD.exists(filename)) {
       dataFile = SD.open(filename, FILE_WRITE);
@@ -125,30 +173,40 @@ boolean loadSDFile() {
   return file;
 }
 
-void writeSD(float meters, float pascal, float est_alt) {
+void get_alt() {
+  bmp280.getAltitude(meters);
+  bmp280.getPressure(pascal);
+  float est_alt = pressureKalmanFilter.updateEstimate(meters);
 
-  dataFile = SD.open(filename, FILE_WRITE);
-
-  if (dataFile) {
-  //Serial Prints
-  Serial.print(meters);
-  Serial.print(",");
-  Serial.print(pascal);
-  Serial.print(",");
-  Serial.println(est_alt);
-  
-  //Writing in SD Card!
-  dataFile.print(meters);   
-  dataFile.print(",");
-  dataFile.print(est_alt);
-  dataFile.print(",");
-  dataFile.println(pascal);
-  dataFile.close();
-
-  delay(500);
-
-  } else {
-  Serial.println("error Opening the txt file");
-  err = true;
-  }
+  return est_alt;
 }
+
+// void writeSD(float meters, float pascal, float est_alt) {
+
+//   dataFile = SD.open(filename, FILE_WRITE);
+
+//   Serial.println(FreeRam());
+
+//   if (dataFile) {
+//   //Serial Prints
+//   Serial.print(meters);
+//   Serial.print(",");
+//   Serial.print(pascal);
+//   Serial.print(",");
+//   Serial.println(est_alt);
+  
+//   //Writing in SD Card!
+//   dataFile.print(meters);   
+//   dataFile.print(",");
+//   dataFile.print(est_alt);
+//   dataFile.print(",");
+//   dataFile.println(pascal);
+//   dataFile.close();
+
+//   delay(10);
+
+//   } else {
+//   Serial.println("error Opening the txt file");
+//   err = true;
+//   }
+// }

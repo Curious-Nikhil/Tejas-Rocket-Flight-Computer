@@ -2,5 +2,5 @@
     "board": "arduino:avr:uno",
     "port": "COM6",
     "programmer": "ArduinoISP",
-    "sketch": "Tejas Planning\\BMP_280\\i2c_BMP280\\i2c_BMP280.ino"
+    "sketch": "Tejas FC\\Tejas_V1_FC\\Tejas_V1_FC.ino"
 }
