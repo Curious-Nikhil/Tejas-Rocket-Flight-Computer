@@ -48,6 +48,7 @@ bool ABORT = false;
 
 int lastAlt = 0;
 
+bool ApoTime = 0;
 // =============================================
 // ===              MPU Vars                 ===
 // =============================================
@@ -194,21 +195,21 @@ void loop() {
     //APOGEE DETECTION PROGRAM
     get_alt();
 
-    if (est_alt - lastAlt <= -1 && pyro == false && launch == true && pyroFired == false) {
+    if (est_alt - lastAlt <= -0.5 && pyro == false && launch == true && pyroFired == false) {
       //check for a meter drop
       //Store time of Apogee Trigger 1
       delay(150);
       get_alt();
       Serial.println(F("P1"));
 
-      if(est_alt - lastAlt <= -2 && pyro == false && launch == true && pyroFired == false) {
+      if(est_alt - lastAlt <= -1 && pyro == false && launch == true && pyroFired == false) {
         //check for 2 meter drop
         //Store time of Apogee Trigger 1
 
         delay(150);
         get_alt();
         Serial.println(F("P2"));
-        if(est_alt - lastAlt <= -3 && pyro == false && launch == true && pyroFired == false) {
+        if(est_alt - lastAlt <= -2 && pyro == false && launch == true && pyroFired == false) {
           //PASS 3
           //Store time of Apogee Pyro Fire
           //Fire Pyros!
@@ -229,8 +230,8 @@ void loop() {
   if (pyro == true && launch == true && pyroFired == false) {
     Serial.println(F("pyro"));
     digitalWrite(RLED, HIGH);
-
-    //ApoTime = millis();
+    tone(buzzer, 2000, 1000);
+    ApoTime = 1;
     delay(1000);
     pyroFired = true;
 
@@ -317,8 +318,9 @@ void initializeSD() {
     myFile.print(",");
     myFile.print("ay");
     myFile.print(",");
-    myFile.println("az");
- 
+    myFile.print("az");
+    myFile.print(",");
+    myFile.println("ApoTime");
 
     myFile.close();
     Serial.println(F("Fin-1"));
@@ -446,6 +448,8 @@ void Write() {
     myFile.print(ay);
     myFile.print(",");
     myFile.println(az);
+    myFile.print(",");
+    myFile.println(ApoTime);
 
     myFile.close();
 
