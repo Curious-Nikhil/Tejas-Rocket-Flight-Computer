@@ -28,8 +28,7 @@
 #include <SD.h>
 
 
-#define INTERRUPT_PIN 2  // use pin 2 on Arduino Uno & most boards
-#define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
+#define INTERRUPT_PIN 2  // 
 #define RLED 6// Green LED
 #define GLED 7// Green LED
 #define buzzer 8
@@ -40,6 +39,7 @@
 
 //Timers Vars
 unsigned long previousMillis = 0;
+unsigned long currentMillis;
 bool launch = 0;
 bool pyro = false;
 bool pyroFired = false;
@@ -105,7 +105,7 @@ void setup() {
   delay(2000);
 
   // configure LED for output
-  //pinMode(LED_PIN, OUTPUT);
+
   pinMode(GLED, OUTPUT);
   pinMode(RLED, OUTPUT);
   pinMode(pyroPin, OUTPUT);
@@ -132,22 +132,22 @@ void setup() {
   //PASS 4: Pyro Check
 
   //Get baseline alt
-  // float sum = 0;
-  // delay(5000);
-  // for (int i=0; i < 30; i++) {
+  float sum = 0;
+  delay(5000);
+  for (int i=0; i < 30; i++) {
 
-  //   delay(100);
+    delay(100);
 
-  //   bmp280.getAltitude(base_alt);
-  //   sum += base_alt;
-  //   Serial.println(base_alt);
-  // }
+    bmp280.getAltitude(base_alt);
+    sum += base_alt;
+    Serial.println(base_alt);
+  }
 
-  // base_alt = sum/30.0;
-  // Serial.print(F("BASEH: "));
-  // Serial.println(base_alt);
+  base_alt = sum/30.0;
+  Serial.print(F("BASEH: "));
+  Serial.println(base_alt);
 
-  // delay(1000);
+  delay(1000);
 
 }
 
@@ -172,8 +172,6 @@ void loop() {
 
 
   get_alt();
-
-  Serial.println(FreeRam());
   motion();
 
   if (launch == 0) {
@@ -194,21 +192,23 @@ void loop() {
     //APOGEE DETECTION PROGRAM
     get_alt();
 
-    if (est_alt - lastAlt <= -1 && pyro == false && launch == true && pyroFired == false) {
-      //check for a meter drop
+    Serial.println(est_alt - lastAlt);
+
+    if (est_alt - lastAlt <= -0.5 && pyro == false && launch == true && pyroFired == false) {
+      //check for drop
       //Store time of Apogee Trigger 1
-      delay(150);
+      delay(20);
       get_alt();
       Serial.println(F("P1"));
 
-      if(est_alt - lastAlt <= -2 && pyro == false && launch == true && pyroFired == false) {
-        //check for 2 meter drop
+      if(est_alt - lastAlt <= -1 && pyro == false && launch == true && pyroFired == false) {
+        //check for  drop
         //Store time of Apogee Trigger 1
 
-        delay(150);
+        delay(20);
         get_alt();
         Serial.println(F("P2"));
-        if(est_alt - lastAlt <= -3 && pyro == false && launch == true && pyroFired == false) {
+        if(est_alt - lastAlt <= -2 && pyro == false && launch == true && pyroFired == false) {
           //PASS 3
           //Store time of Apogee Pyro Fire
           //Fire Pyros!
@@ -227,32 +227,31 @@ void loop() {
   } 
 
   if (pyro == true && launch == true && pyroFired == false) {
+
     Serial.println(F("pyro"));
     digitalWrite(RLED, HIGH);
+    tone(buzzer, 2500, 1000);
+    currentMillis = millis();
 
-    //ApoTime = millis();
-    delay(1000);
-    pyroFired = true;
+    if (currentMillis - previousMillis >= 1000) {
+      pyroFired = true;
+
+      previousMillis = currentMillis;
+    }
 
   }
 
-  if (ay <10000 && launch == true && pyro == true) {
-    //Land PROGRAM
+  
 
-    if(landed =! true) {
-      //Store Landing time ONCE!
-      //landTime = millis();
-    }
-    //landed = true;
+  if (base_alt - est_alt < 1  && launch == true && pyro == true && pyroFired == true) {
+    //Land PROGRAM
+    landed = true;
   }
 
   //Flight Logs
 
   if (launch == true && landed == false) {
     //Flight Logs
-    // if (FL = false) {
-    //   myFile = SD.open(filename, FILE_WRITE);
-    // }
     
     Write();
     sd_count++;
@@ -268,8 +267,8 @@ void loop() {
       myFile.close();
     }
     
-    FL = true;
   }
+
 }//voidloop end
 
 
@@ -317,8 +316,13 @@ void initializeSD() {
     myFile.print(",");
     myFile.print("ay");
     myFile.print(",");
-    myFile.println("az");
- 
+    myFile.print("az");
+    myFile.print(",");
+    myFile.print("LaunchTime");
+    myFile.print(",");
+    myFile.print("ApoTime");
+    myFile.print(",");
+    myFile.print("LandTime");
 
     myFile.close();
     Serial.println(F("Fin-1"));
@@ -445,7 +449,14 @@ void Write() {
     myFile.print(",");
     myFile.print(ay);
     myFile.print(",");
-    myFile.println(az);
+    myFile.print(az);
+    myFile.print(",");
+    myFile.print(launch);
+    myFile.print(",");
+    myFile.print(pyro);
+    myFile.print(",");
+    myFile.println(landed);   
+
 
     myFile.close();
 
