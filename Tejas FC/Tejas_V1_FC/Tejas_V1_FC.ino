@@ -31,7 +31,7 @@
 #define INTERRUPT_PIN 2  // 
 #define RLED 6// Green LED
 #define GLED 7// Green LED
-#define buzzer 8
+#define buzzer 8 
 #define pyroPin 9
 // =============================================
 // ===          MISC Global Vars             ===
@@ -322,7 +322,7 @@ void initializeSD() {
     myFile.print(",");
     myFile.print("ApoTime");
     myFile.print(",");
-    myFile.print("LandTime");
+    myFile.println("LandTime");
 
     myFile.close();
     Serial.println(F("Fin-1"));
