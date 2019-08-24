@@ -5,5 +5,5 @@ FL23AUG14
 %Figure 1
 figure
 yyaxis left
-plot(FL23AUG14.Time, FL23AUG14.alt, FL23AUG14.Time, FL23AUG14.KMF, '--k')
+plot(FL19.Time, FL19.alt, FL19.Time, FL19.KMF, '--k')
 
