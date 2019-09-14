@@ -31,7 +31,7 @@
 #define INTERRUPT_PIN 2  // 
 #define RLED 6// Green LED
 #define GLED 7// Green LED
-#define buzzer 8 
+#define buzzer 8
 #define pyroPin 9
 // =============================================
 // ===          MISC Global Vars             ===
@@ -80,7 +80,7 @@ float base_alt;
 // =============================================
 String filename;
 File myFile;
-int sd_count = 0; 
+int sd_count = 0;
 bool FL = false;
 
 
@@ -116,14 +116,14 @@ void setup() {
   if (FreeRam() < 275) {
     Serial.println(F("RAM-0"));
     RED();
-    while(1);
+    while (1);
   }
 
   // PASS 2: Initialize SD Module
   initializeSD();
 
   //PASS 3: Initialize Gyroscope and Servo
-    //needs calibration method also.
+  //needs calibration method also.
   initializeMPU();
 
   //PASS 3: Initialize Baromter
@@ -133,22 +133,31 @@ void setup() {
 
   //Get baseline alt
   float sum = 0;
+  digitalWrite(GLED, HIGH);
   delay(5000);
-  for (int i=0; i < 30; i++) {
+  digitalWrite(GLED, LOW);
+
+  for (int i = 0; i < 30; i++) {
+    digitalWrite(GLED, LOW);
+    digitalWrite(RLED, HIGH);
 
     delay(100);
+
+    digitalWrite(GLED, HIGH);
+    digitalWrite(RLED, LOW);
 
     bmp280.getAltitude(base_alt);
     sum += base_alt;
     Serial.println(base_alt);
   }
 
-  base_alt = sum/30.0;
+  base_alt = sum / 30.0;
   Serial.print(F("BASEH: "));
   Serial.println(base_alt);
 
   delay(1000);
-
+  digitalWrite(GLED, LOW);
+  digitalWrite(RLED, LOW);
 }
 
 // ================================================================
@@ -157,18 +166,22 @@ void setup() {
 void loop() {
   //Disable Pyros
   digitalWrite(pyroPin, LOW);
-  
-  if(launch == false && pyro == false && landed == false) {
+
+  if (launch == false && pyro == false && landed == false) {
     GREEN();
   }
+  else if (landed == true) {
+    LAND_SIG();
+  }
   
+
   /*************
-   * Detect launch
-   * Enable ABORT - for extreame tilt.
-   * Detect Apogee
+     Detect launch
+     Enable ABORT - for extreame tilt.
+     Detect Apogee
    * * Fire Pyros
-   * Flight Log
-   */
+     Flight Log
+  */
 
 
   get_alt();
@@ -178,7 +191,7 @@ void loop() {
     //Serial.println(ay);
   }
 
-  if (ay > 10000 || launch == true && landed == false) {
+  if (ay > 30000 || launch == true && landed == false) {
 
     if (launch == 0) {
       Serial.println(F("LAUNCH! ! !"));
@@ -188,7 +201,7 @@ void loop() {
     Serial.println("LAUNCH");
 
     launch = 1;
-    
+
     //APOGEE DETECTION PROGRAM
     get_alt();
 
@@ -200,31 +213,36 @@ void loop() {
       delay(20);
       get_alt();
       Serial.println(F("P1"));
+      tone(buzzer, 2500, 200);
 
-      if(est_alt - lastAlt <= -1 && pyro == false && launch == true && pyroFired == false) {
+      if (est_alt - lastAlt <= -1 && pyro == false && launch == true && pyroFired == false) {
         //check for  drop
         //Store time of Apogee Trigger 1
 
         delay(20);
         get_alt();
         Serial.println(F("P2"));
-        if(est_alt - lastAlt <= -2 && pyro == false && launch == true && pyroFired == false) {
+        tone(buzzer, 2500, 200);
+
+        if (est_alt - lastAlt <= -2 && pyro == false && launch == true && pyroFired == false) {
           //PASS 3
           //Store time of Apogee Pyro Fire
           //Fire Pyros!
           pyro = true;
           Serial.println(F("P3"));
-        }else {
+          tone(buzzer, 2500, 200);
+
+        } else {
           lastAlt = est_alt;
         }
-      }else{
+      } else {
         lastAlt = est_alt;
       }
     }
-    else{
+    else {
       lastAlt = est_alt;
     }
-  } 
+  }
 
   if (pyro == true && launch == true && pyroFired == false) {
 
@@ -233,7 +251,7 @@ void loop() {
     tone(buzzer, 2500, 1000);
     currentMillis = millis();
 
-    if (currentMillis - previousMillis >= 1000) {
+    if (currentMillis - previousMillis >= 2000) {
       pyroFired = true;
 
       previousMillis = currentMillis;
@@ -242,17 +260,21 @@ void loop() {
   }
 
   
+  //&& pyro == true && pyroFired == true
+  //( 0 < est_alt - base_alt < 3 )
 
-  if (base_alt - est_alt < 1  && launch == true && pyro == true && pyroFired == true) {
-    //Land PROGRAM
-    landed = true;
-  }
+  // if (( 0 < est_alt - base_alt < 2 ) && launch == true) {
+  //   //Land PROGRAM
+  //   landed = true;
+
+  //   Serial.println("LANDED!");
+  // }
 
   //Flight Logs
 
   if (launch == true && landed == false) {
     //Flight Logs
-    
+
     Write();
     sd_count++;
 
@@ -266,7 +288,7 @@ void loop() {
     if (landed == true) {
       myFile.close();
     }
-    
+
   }
 
 }//voidloop end
@@ -369,39 +391,39 @@ void initializeBMP() {
 // ==========================================================
 
 void initializeMPU() {
-// initialize device
-    Serial.println("Initializing I2C devices...");
-    accelgyro.initialize();
+  // initialize device
+  Serial.println("Initializing I2C devices...");
+  accelgyro.initialize();
 
-    // verify connection
-    Serial.println("Testing device connections...");
-    Serial.println(accelgyro.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+  // verify connection
+  Serial.println("Testing device connections...");
+  Serial.println(accelgyro.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
 
-    #ifdef MPU_CALBIRATION 
-    Serial.println("Updating internal sensor offsets...");
-    // -76	-2359	1688	0	0	0
-    Serial.print(accelgyro.getXAccelOffset()); Serial.print("\t"); // -76
-    Serial.print(accelgyro.getYAccelOffset()); Serial.print("\t"); // -2359
-    Serial.print(accelgyro.getZAccelOffset()); Serial.print("\t"); // 1688
-    Serial.print(accelgyro.getXGyroOffset()); Serial.print("\t"); // 0
-    Serial.print(accelgyro.getYGyroOffset()); Serial.print("\t"); // 0
-    Serial.print(accelgyro.getZGyroOffset()); Serial.print("\t"); // 0
-    Serial.print("\n");
-    // accelgyro.setXGyroOffset(220);
-    // accelgyro.setYGyroOffset(76);
-    // accelgyro.setZGyroOffset(-85);
-    Serial.print(accelgyro.getXAccelOffset()); Serial.print("\t"); // -76
-    Serial.print(accelgyro.getYAccelOffset()); Serial.print("\t"); // -2359
-    Serial.print(accelgyro.getZAccelOffset()); Serial.print("\t"); // 1688
-    Serial.print(accelgyro.getXGyroOffset()); Serial.print("\t"); // 0
-    Serial.print(accelgyro.getYGyroOffset()); Serial.print("\t"); // 0
-    Serial.print(accelgyro.getZGyroOffset()); Serial.print("\t"); // 0
-    Serial.print("\n");
-    #endif
+#ifdef MPU_CALBIRATION
+  Serial.println("Updating internal sensor offsets...");
+  // -76	-2359	1688	0	0	0
+  Serial.print(accelgyro.getXAccelOffset()); Serial.print("\t"); // -76
+  Serial.print(accelgyro.getYAccelOffset()); Serial.print("\t"); // -2359
+  Serial.print(accelgyro.getZAccelOffset()); Serial.print("\t"); // 1688
+  Serial.print(accelgyro.getXGyroOffset()); Serial.print("\t"); // 0
+  Serial.print(accelgyro.getYGyroOffset()); Serial.print("\t"); // 0
+  Serial.print(accelgyro.getZGyroOffset()); Serial.print("\t"); // 0
+  Serial.print("\n");
+  // accelgyro.setXGyroOffset(220);
+  // accelgyro.setYGyroOffset(76);
+  // accelgyro.setZGyroOffset(-85);
+  Serial.print(accelgyro.getXAccelOffset()); Serial.print("\t"); // -76
+  Serial.print(accelgyro.getYAccelOffset()); Serial.print("\t"); // -2359
+  Serial.print(accelgyro.getZAccelOffset()); Serial.print("\t"); // 1688
+  Serial.print(accelgyro.getXGyroOffset()); Serial.print("\t"); // 0
+  Serial.print(accelgyro.getYGyroOffset()); Serial.print("\t"); // 0
+  Serial.print(accelgyro.getZGyroOffset()); Serial.print("\t"); // 0
+  Serial.print("\n");
+#endif
 }
 
 void motion() {
-    accelgyro.getAcceleration(&ax, &ay, &az);
+  accelgyro.getAcceleration(&ax, &ay, &az);
 }
 
 // ================================================================
@@ -429,7 +451,7 @@ boolean loadSDFile() {
 
 void Write() {
   myFile = SD.open(filename, FILE_WRITE);
-  
+
   Serial.println(FreeRam());
 
   if (myFile) {
@@ -455,7 +477,7 @@ void Write() {
     myFile.print(",");
     myFile.print(pyro);
     myFile.print(",");
-    myFile.println(landed);   
+    myFile.println(landed);
 
 
     myFile.close();
@@ -463,11 +485,11 @@ void Write() {
     //delay(10);
 
   } else {
-    #ifdef SERIAL_DEBUG
+#ifdef SERIAL_DEBUG
     Serial.println(F("FW-0"));
-    #endif
-    
-    while(1);
+#endif
+
+    while (1);
   }
 }
 
@@ -499,7 +521,23 @@ void GREEN() {
 
   if (currentMillis - previousMillis > interval) {
     previousMillis = currentMillis;
-    
+
+    digitalWrite(GLED, HIGH);
+    tone(buzzer, 2500, 100);
+  }
+  else {
+    digitalWrite(GLED, LOW);
+  }
+}
+
+void LAND_SIG() {
+  //Everything is fine.. signal.
+  unsigned long interval = 100;
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis > interval) {
+    previousMillis = currentMillis;
+
     digitalWrite(GLED, HIGH);
     tone(buzzer, 2500, 100);
   }
