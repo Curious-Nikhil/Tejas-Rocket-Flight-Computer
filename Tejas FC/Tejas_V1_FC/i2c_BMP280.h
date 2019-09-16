@@ -307,6 +307,16 @@ public:
 
     };
 
+//    /**<  gives the number of meters above sea level. JFM parameterised sea level*/
+//    void getAltitude(float& meter,float seaLevelPa)
+//    {
+//        uint32_t iPascal;
+//        getPressure(iPascal);
+//
+//        meter = 44330.0*(1-pow(float(iPascal)/(seaLevelPa),1.0/5.255));
+//
+//    };
+
     /**<  gives temperature in degree celsius */
     void getTemperature(int32_t& millicelsius)
     {
@@ -338,6 +348,3 @@ public:
 //BMP280 bmp280 = BMP280();
 
 #endif
-
-
-

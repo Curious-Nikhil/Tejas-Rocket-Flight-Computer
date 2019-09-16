@@ -372,10 +372,18 @@ void initializeBMP() {
   }
 
   //Calibration Settings - https://www.best-microcontroller-projects.com/bmp280.html#L1080
-  bmp280.setPressureOversampleRatio(10); //Oversampling Ratio!
-  bmp280.setTemperatureOversampleRatio(1);
-  bmp280.setFilterRatio(4);
-  bmp280.setStandby(0);
+
+  /*For drop detection
+   * osrs_p = 2
+   * osrs_t = 1
+   * IIR = 0 (off)
+   * t_sb = 0 (0.5ms)
+   */
+  
+  bmp280.setPressureOversampleRatio(10); //osrs_p 
+  bmp280.setTemperatureOversampleRatio(1); // osrs_t
+  bmp280.setFilterRatio(4); //IIR - Filter.
+  bmp280.setStandby(0); //t_sb - standby time - wait for next measurement
 
 
   // onetime-measure:
