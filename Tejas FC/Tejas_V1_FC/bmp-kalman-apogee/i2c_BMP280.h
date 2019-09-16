@@ -303,7 +303,7 @@ public:
         uint32_t iPascal;
         getPressure(iPascal);
 
-        meter = 44330.0*(1-pow(float(iPascal)/95325.5,1.0/5.255)); //changed 101325.0 - local air pressure - 95325.5
+        meter = 44330.0*(1-pow(float(iPascal)/101800.00,1.0/5.255)); //changed 101325.0 - local air pressure - 95325.5
 
     };
 

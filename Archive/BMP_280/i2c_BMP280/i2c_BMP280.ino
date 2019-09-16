@@ -45,9 +45,9 @@ void setup()
   
 
 //Calibration Settings - https://www.best-microcontroller-projects.com/bmp280.html#L1080
-bmp280.setPressureOversampleRatio(10); //Oversampling Ratio!
+bmp280.setPressureOversampleRatio(2); //Oversampling Ratio!
 bmp280.setTemperatureOversampleRatio(1);
-bmp280.setFilterRatio(4);
+bmp280.setFilterRatio(0);
 bmp280.setStandby(0);
 
 

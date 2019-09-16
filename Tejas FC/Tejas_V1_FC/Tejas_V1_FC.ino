@@ -1,8 +1,8 @@
 // =============================
-// == PHASE ZERO & ONE Devs ====
+// == PHASE TWO Devs ====
 //==============================
 
-/*Tejas V1 - @Nikhil Mishra
+/*Tejas V2 - @Nikhil Mishra
    https://curious-nikhil.github.io/
    Tejas is a rocket computer
 */
@@ -20,8 +20,8 @@
 //==============================
 
 //Header Files
-#include "i2c.h"
-#include "i2c_BMP280.h"
+//#include "i2c.h"
+#include "Adafruit_BMP280.h"
 #include "MPU6050.h"
 #include <Wire.h>
 #include "SimpleKalmanFilter.h"
@@ -67,7 +67,8 @@ int16_t gx, gy, gz;
 // =============================================
 // ===              BAROMETER                ===
 // =============================================
-BMP280 bmp280;
+
+Adafruit_BMP280 bmp280; // I2C
 SimpleKalmanFilter pressureKalmanFilter(1, 1, 0.01);
 
 static float alt;
@@ -146,7 +147,7 @@ void setup() {
     digitalWrite(GLED, HIGH);
     digitalWrite(RLED, LOW);
 
-    bmp280.getAltitude(base_alt);
+    bmp280.readAltitude(1018.00);
     sum += base_alt;
     Serial.println(base_alt);
   }
@@ -173,7 +174,7 @@ void loop() {
   else if (landed == true) {
     LAND_SIG();
   }
-  
+
 
   /*************
      Detect launch
@@ -183,8 +184,7 @@ void loop() {
      Flight Log
   */
 
-
-  get_alt();
+  
   motion();
 
   if (launch == 0) {
@@ -196,16 +196,18 @@ void loop() {
     if (launch == 0) {
       Serial.println(F("LAUNCH! ! !"));
       //launchTime = millis();
-      delay(1000);
+      //delay(1000);
     }
-    Serial.println("LAUNCH");
+
 
     launch = 1;
 
     //APOGEE DETECTION PROGRAM
+    
+
     get_alt();
 
-    Serial.println(est_alt - lastAlt);
+//    Serial.println(est_alt - lastAlt);
 
     if (est_alt - lastAlt <= -0.5 && pyro == false && launch == true && pyroFired == false) {
       //check for drop
@@ -259,7 +261,7 @@ void loop() {
 
   }
 
-  
+
   //&& pyro == true && pyroFired == true
   //( 0 < est_alt - base_alt < 3 )
 
@@ -282,7 +284,6 @@ void loop() {
       myFile.flush();
       sd_count = 0;
       Serial.println("FLUSH");
-
     }
 
     if (landed == true) {
@@ -362,33 +363,26 @@ void initializeSD() {
 
 void initializeBMP() {
 
-  Serial.print(F("InintBMP"));
-  if (bmp280.initialize()) Serial.println(F("BMP1")); //sensor found
-  else
-  {
-    Serial.println(F("BMP0")); //Sensor not found
-    RED();
-    while (1) {}
+  Serial.print(F("BMP"));
+
+  if (!bmp280.begin()) {
+    Serial.println(F("0"));
+    while (1);
   }
 
-  //Calibration Settings - https://www.best-microcontroller-projects.com/bmp280.html#L1080
-
   /*For drop detection
-   * osrs_p = 2
-   * osrs_t = 1
-   * IIR = 0 (off)
-   * t_sb = 0 (0.5ms)
-   */
-  
-  bmp280.setPressureOversampleRatio(10); //osrs_p 
-  bmp280.setTemperatureOversampleRatio(1); // osrs_t
-  bmp280.setFilterRatio(4); //IIR - Filter.
-  bmp280.setStandby(0); //t_sb - standby time - wait for next measurement
+    osrs_p = 2
+    osrs_t = 1
+    IIR = 0 (off)
+    t_sb = 0 (0.5ms)
+  */
 
-
-  // onetime-measure:
-  bmp280.setEnabled(0);
-  bmp280.triggerMeasurement();
+  /* Default settings from datasheet. */
+  bmp280.setSampling(Adafruit_BMP280::MODE_NORMAL,     /* Operating Mode. */
+                  Adafruit_BMP280::SAMPLING_X2,     /* Temp. oversampling */
+                  Adafruit_BMP280::SAMPLING_X1,    /* Pressure oversampling */
+                  Adafruit_BMP280::FILTER_OFF,      /* Filtering. */
+                  Adafruit_BMP280::STANDBY_MS_1); /* Standby time. */
 
   Serial.println(F("BMPInit1"));
 }
@@ -460,7 +454,7 @@ boolean loadSDFile() {
 void Write() {
   myFile = SD.open(filename, FILE_WRITE);
 
-  Serial.println(FreeRam());
+//  Serial.println(FreeRam());
 
   if (myFile) {
 
@@ -555,7 +549,10 @@ void LAND_SIG() {
 }
 
 void get_alt() {
-  bmp280.getAltitude(alt);
-  bmp280.getPressure(pascal);
+
+  alt = bmp280.readAltitude(1013.5);
+
+  pascal = bmp280.readPressure();
+
   est_alt = pressureKalmanFilter.updateEstimate(alt);
 }
