@@ -39,6 +39,7 @@
 
 //Timers Vars
 unsigned long previousMillis = 0;
+unsigned long previousMillis2 = 0;
 unsigned long currentMillis;
 bool launch = 0;
 bool pyro = false;
@@ -207,8 +208,9 @@ void loop() {
 
     get_alt();
 
-//    Serial.println(est_alt - lastAlt);
-
+    //Apogee V1
+    
+    /**
     if (est_alt - lastAlt <= -0.5 && pyro == false && launch == true && pyroFired == false) {
       //check for drop
       //Store time of Apogee Trigger 1
@@ -244,6 +246,43 @@ void loop() {
     else {
       lastAlt = est_alt;
     }
+
+    **/
+
+   //Apogee V2:
+   //Continous Check
+   if (est_alt - lastAlt <= -0.5 && pyro == false && launch == true && pyroFired == false) {
+
+     //Pass 1:
+     currentMillis = millis();
+
+    if (currentMillis - previousMillis2 >= 1000) {
+      if(est_alt - lastAlt <= -0.5) {
+        
+        
+        //Pass 2:
+        currentMillis = millis();
+        if (currentMillis - previousMillis2 >= 1000) {
+
+          //Pass 3:
+          if (est_alt - lastAlt <= -0.5) {
+
+            //final Pass
+
+            pyro = true;
+
+          } {lastAlt = est_alt;}
+        previousMillis2 = currentMillis;
+        }
+
+    } else{lastAlt = est_alt;}
+    
+    previousMillis2 = currentMillis;
+    }
+    
+   }else {lastAlt = est_alt;} 
+
+
   }
 
   if (pyro == true && launch == true && pyroFired == false) {
