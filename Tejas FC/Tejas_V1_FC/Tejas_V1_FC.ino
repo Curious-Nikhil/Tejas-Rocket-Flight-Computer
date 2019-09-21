@@ -1,8 +1,8 @@
 // =============================
-// == PHASE TWO Devs ====
+// == PHASE THREE Devs ====
 //==============================
 
-/*Tejas V2 - @Nikhil Mishra
+/*Tejas V3 - @Nikhil Mishra
    https://curious-nikhil.github.io/
    Tejas is a rocket computer
 */
@@ -185,7 +185,7 @@ void loop() {
      Flight Log
   */
 
-  
+
   motion();
 
   if (launch == 0) {
@@ -204,14 +204,14 @@ void loop() {
     launch = 1;
 
     //APOGEE DETECTION PROGRAM
-    
+
 
     get_alt();
 
     //Apogee V1
-    
+
     /**
-    if (est_alt - lastAlt <= -0.5 && pyro == false && launch == true && pyroFired == false) {
+      if (est_alt - lastAlt <= -0.5 && pyro == false && launch == true && pyroFired == false) {
       //check for drop
       //Store time of Apogee Trigger 1
       delay(20);
@@ -242,45 +242,52 @@ void loop() {
       } else {
         lastAlt = est_alt;
       }
-    }
-    else {
+      }
+      else {
       lastAlt = est_alt;
-    }
+      }
 
     **/
 
-   //Apogee V2:
-   //Continous Check
-   if (est_alt - lastAlt <= -0.5 && pyro == false && launch == true && pyroFired == false) {
+    //Apogee V2:
+    //Continous Check
+    if (est_alt - lastAlt <= -0.5 && pyro == false && launch == true && pyroFired == false) {
 
-     //Pass 1:
-     currentMillis = millis();
+      Serial.println("PASS 1");
+      //Pass 1:
+      currentMillis = millis();
 
-    if (currentMillis - previousMillis2 >= 1000) {
-      if(est_alt - lastAlt <= -0.5) {
-        
-        
-        //Pass 2:
-        currentMillis = millis();
-        if (currentMillis - previousMillis2 >= 1000) {
+      if (currentMillis - previousMillis2 >= 1000) {
+        if (est_alt - lastAlt <= -0.5) {
+          Serial.println("PASS 1");
+         
+          //Pass 2:
+          currentMillis = millis();
+          if (currentMillis - previousMillis2 >= 1000) {
 
-          //Pass 3:
-          if (est_alt - lastAlt <= -0.5) {
+            //Pass 3:
+            if (est_alt - lastAlt <= -0.5) {
 
-            //final Pass
+              //final Pass
+              Serial.println("Pyro");
+              pyro = true;
 
-            pyro = true;
+            } else{
+              lastAlt = est_alt;
+            }
+            previousMillis2 = currentMillis;
+          }
 
-          } {lastAlt = est_alt;}
-        previousMillis2 = currentMillis;
+        } else {
+          lastAlt = est_alt;
         }
 
-    } else{lastAlt = est_alt;}
-    
-    previousMillis2 = currentMillis;
+        previousMillis2 = currentMillis;
+      }
+
+    } else {
+      lastAlt = est_alt;
     }
-    
-   }else {lastAlt = est_alt;} 
 
 
   }
@@ -418,10 +425,10 @@ void initializeBMP() {
 
   /* Default settings from datasheet. */
   bmp280.setSampling(Adafruit_BMP280::MODE_NORMAL,     /* Operating Mode. */
-                  Adafruit_BMP280::SAMPLING_X2,     /* Temp. oversampling */
-                  Adafruit_BMP280::SAMPLING_X1,    /* Pressure oversampling */
-                  Adafruit_BMP280::FILTER_OFF,      /* Filtering. */
-                  Adafruit_BMP280::STANDBY_MS_1); /* Standby time. */
+                     Adafruit_BMP280::SAMPLING_X2,     /* Temp. oversampling */
+                     Adafruit_BMP280::SAMPLING_X1,    /* Pressure oversampling */
+                     Adafruit_BMP280::FILTER_OFF,      /* Filtering. */
+                     Adafruit_BMP280::STANDBY_MS_1); /* Standby time. */
 
   Serial.println(F("BMPInit1"));
 }
@@ -493,7 +500,7 @@ boolean loadSDFile() {
 void Write() {
   myFile = SD.open(filename, FILE_WRITE);
 
-//  Serial.println(FreeRam());
+  //  Serial.println(FreeRam());
 
   if (myFile) {
 
