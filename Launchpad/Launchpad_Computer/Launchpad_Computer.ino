@@ -65,17 +65,17 @@ void setup()
   delay(1000);
 
   /**
-  * MODES:
-  * Mode 0: Invalid Waiting for mode
-  * Mode 1: Default Launcpad without SD and Loadcell checks
-  * Mode 2: Test Bench Launchpad - with checks.
+    MODES:
+    Mode 0: Invalid Waiting for mode
+    Mode 1: Default Launcpad without SD and Loadcell checks
+    Mode 2: Test Bench Launchpad - with checks.
   */
   Serial.println(Serial.available());
   Serial.println("Waiting for Serial/BT command");
   Serial.println("Enter Launchpad Mode:");
 
   digitalWrite(RLED, HIGH);
-  while (Serial.available() == 0){
+  while (Serial.available() == 0) {
 
   }
 
@@ -89,7 +89,7 @@ void setup()
       Serial.println("M1: DEFAULT LAUNCPAD");
       tone(buzzer, 2500, 2000);
       digitalWrite(GLED, HIGH);
-      }
+    }
     else if (command.equals("2")) {
       Serial.println("M2: TEST BENCH LAUNCPAD");
       mode = 2;
@@ -99,20 +99,18 @@ void setup()
       digitalWrite(GLED, LOW);
       delay(1000);
       digitalWrite(GLED, LOW);
-      }
+    }
     else {
       Serial.println("Invalid command");
       Serial.println("Reset Launcpad");
       RED();
-      while(1);
-      }
+      while (1);
+    }
   }
 
 
-  if (mode == 2) {
-    //SD CARD initialization
-    initializeSD();
-    
+  if (mode == 1) {
+    Serial.println("M1");
     //Check if Loadcel is working.
     scale.begin(DOUT, CLK);
 
@@ -121,7 +119,7 @@ void setup()
     long reading;
     Serial.println("Loadcel is set up");
 
-    #ifdef LOADCELL_CHECK
+#ifdef LOADCELL_CHECK
     Serial.println(scale.read());
     if (scale.wait_ready_timeout(1000) == 0 || scale.read() < 1000)
     {
@@ -130,10 +128,33 @@ void setup()
       while (1);
     }
     scale.power_down();
-    #endif
+#endif
+  }
+  if (mode == 2) {
+    //SD CARD initialization
+    initializeSD();
+
+    //Check if Loadcel is working.
+    scale.begin(DOUT, CLK);
+
+    scale.set_scale();
+    scale.tare();
+    long reading;
+    Serial.println("Loadcel is set up");
+
+#ifdef LOADCELL_CHECK
+    Serial.println(scale.read());
+    if (scale.wait_ready_timeout(1000) == 0 || scale.read() < 1000)
+    {
+      Serial.println("HX711 not Found");
+      RED();
+      while (1);
+    }
+    //scale.power_down();
+#endif
   }
 
-  
+
 
   //check if Fire Switch is enabled?
   buttonState = digitalRead(pushbutton);
@@ -146,17 +167,17 @@ void setup()
 }
 
 void loop()
-{ 
+{
   buttonState = digitalRead(pushbutton);
 
   if (Serial.available()) {
     command = Serial.readStringUntil('\n');
-    
+
     BT_AVAILABLE = 1;
     Serial.println(command);
     if (command.equals("F1")) {
       BT_FIRE = 1;
-      buttonState = 1; //bug 
+      buttonState = 1; //bug
       Serial.println("DEFAULT Launcpad");
     }
     else if (command.equals("A")) {
@@ -175,13 +196,13 @@ void loop()
     GREEN_Idle();
   }
   // RESET COUNTER
-  //Buttons no longer can ABORT THE LAUNCH - COUNTER_STATUS == 1 && buttonState == 1 
+  //Buttons no longer can ABORT THE LAUNCH - COUNTER_STATUS == 1 && buttonState == 1
   else if (COUNTER_STATUS == 1 && buttonState == 1 && BT_AVAILABLE == 0) {
     Serial.println("HOLD COUNTER");
     Serial.println("RESET COUNTDOWN");
     COUNTER_STATUS = 0;
     counter = 0;
-    BS_LOOP = 0; 
+    BS_LOOP = 0;
     // BT_FIRE = 0;
     // BT_ABORT = 0;
     HOLD_IDLE();
@@ -192,7 +213,7 @@ void loop()
     Serial.println("RESET COUNTDOWN");
     COUNTER_STATUS = 0;
     counter = 0;
-    BS_LOOP = 0; 
+    BS_LOOP = 0;
     BT_FIRE = 0;
     BT_ABORT = 0;
     HOLD_IDLE();
@@ -210,19 +231,19 @@ void loop()
   //1 - OFF, 0 - ON. - using INPUT_PULLUP.
   if (buttonState == 0 && Fire_State == 0 || BT_FIRE == 1 && Fire_State == 0)
   {
-    
+
     if (COUNTER_STATUS == 0 && BS_LOOP == 0) {
       Serial.println("FIRE BUTTON ENABLED");
       Serial.println("INITIATING LAUNCH PROGRAM! GODSPEED!");
     }
 
-    BS_LOOP = 1; // check for button loop to print above message. 
-    
-    
+    BS_LOOP = 1; // check for button loop to print above message.
+
+
     //Check for file and loadcell error
 
     if (mode == 2) {
-      #ifdef LOADCELL_CHECK
+#ifdef LOADCELL_CHECK
       if (myFile == 0 || scale.read() < 1000)
       {
         RED();
@@ -231,7 +252,7 @@ void loop()
       }
 
       Serial.println("Loadcel and SD Mod is set up");
-      #endif
+#endif
     }
 
     currentMillis = millis();
@@ -249,28 +270,28 @@ void loop()
         digitalWrite(RLED, HIGH);
 
         if (mode == 2) {
-        myFile = SD.open(filename, FILE_WRITE);
+          myFile = SD.open(filename, FILE_WRITE);
 
-        scale.power_up();
-        scale.set_scale(calibration_factor);
-        scale.tare();
+          scale.power_up();
+          scale.set_scale(calibration_factor);
+          scale.tare();
 
-        //Check for file and loadcell error
-        #ifdef LOADCELL_CHECK
-        if (myFile == 0)
-        {
-          RED();
-          Serial.println("File - ERROR = 0");
-          while (1);
-        }
-        if (scale.read() < 1000)
-        {
-          RED();
-          Serial.println("Loadcel - ERROR = 0");
-          while (1);
-        }
-        Serial.println("Loadcel and SD Mod is set up");
-        #endif
+          //Check for file and loadcell error
+#ifdef LOADCELL_CHECK
+          if (myFile == 0)
+          {
+            RED();
+            Serial.println("File - ERROR = 0");
+            while (1);
+          }
+          if (scale.read() < 1000)
+          {
+            RED();
+            Serial.println("Loadcel - ERROR = 0");
+            while (1);
+          }
+          Serial.println("Loadcel and SD Mod is set up");
+#endif
         }
       }
       //Launch Sequence Starts
@@ -299,8 +320,15 @@ void loop()
       previousMillis = 0;
 
       if (mode == 2) {
-      while (i < 100)
+        while (i < 100)
+
         {
+          scale.power_up();
+          scale.set_scale(calibration_factor);
+          scale.tare();
+          Serial.println(scale.read());
+          delay(1000);
+
           digitalWrite(mos, HIGH); // too dangerous.
 
           Serial.println("While Loop");
@@ -320,14 +348,29 @@ void loop()
 
           myFile.print(time_ms);
           myFile.print(",");
-          //myFile.println(scale.get_units(), 1);
-
+          myFile.println(scale.get_units(), 1);
+          Serial.print(time_ms);
+          Serial.print(",");
+          Serial.println(scale.get_units(), 1);
           i++;
         }
       }
 
       if (mode == 1 && COUNTER_STATUS == 1) {
-        digitalWrite(mos, HIGH);
+        while ( i < 100) {
+          
+          Serial.print(millis());
+          Serial.print(",");
+          Serial.println(scale.get_units(), 1);
+        }
+        while ( i < 100) {
+          Serial.print(millis());
+          Serial.print(",");
+          Serial.println(scale.get_units(), 1);
+
+          digitalWrite(mos, HIGH);
+
+        }
         delay(5000);
         Serial.println("M1 - LAUNCH PROGRAM ENDS");
       }
