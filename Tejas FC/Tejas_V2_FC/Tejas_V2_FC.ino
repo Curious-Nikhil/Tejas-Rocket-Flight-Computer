@@ -29,9 +29,11 @@
 
 
 #define INTERRUPT_PIN 2  // 
-#define RLED 6// Green LED
+
+#define RLED 8// RED  LED
 #define GLED 7// Green LED
-#define buzzer 8
+#define BLED 6 // BLue LED
+#define buzzer 5
 #define pyroPin 9
 // =============================================
 // ===          MISC Global Vars             ===
@@ -57,13 +59,6 @@ MPU6050 accelgyro;
 
 int16_t ax, ay, az;
 int16_t gx, gy, gz;
-
-
-//INTERRUPT DETECTION ROUTINE
-// volatile bool mpuInterrupt = false;// indicates whether MPU interrupt pin has gone high
-// void dmpDataReady() {
-//   mpuInterrupt = true;
-// }
 
 // =============================================
 // ===              BAROMETER                ===
@@ -107,10 +102,16 @@ void setup() {
   delay(2000);
 
   // configure LED for output
-
-  pinMode(GLED, OUTPUT);
   pinMode(RLED, OUTPUT);
+  pinMode(GLED, OUTPUT);
+  pinMode(BLED, OUTPUT);
   pinMode(pyroPin, OUTPUT);
+
+  digitalWrite(RLED, HIGH);
+  digitalWrite(GLED, HIGH);
+  digitalWrite(BLED, HIGH);
+  digitalWrite(pyroPin, LOW);
+
 
   Serial.println(FreeRam()); //set a threshold for that.
 
@@ -132,21 +133,25 @@ void setup() {
   initializeBMP();
 
   //PASS 4: Pyro Check
+  if ( pyroPin == true) {
+    RED();
+    while (1);
+  }
 
   //Get baseline alt
   float sum = 0;
-  digitalWrite(GLED, HIGH);
-  delay(5000);
   digitalWrite(GLED, LOW);
+  delay(5000);
+  digitalWrite(GLED, HIGH);
 
   for (int i = 0; i < 30; i++) {
-    digitalWrite(GLED, LOW);
-    digitalWrite(RLED, HIGH);
+    digitalWrite(GLED, HIGH);
+    digitalWrite(RLED, LOW);
 
     delay(100);
 
-    digitalWrite(GLED, HIGH);
-    digitalWrite(RLED, LOW);
+    digitalWrite(GLED, LOW);
+    digitalWrite(RLED, HIGH);
 
     bmp280.readAltitude(1018.00);
     sum += base_alt;
@@ -158,8 +163,11 @@ void setup() {
   Serial.println(base_alt);
 
   delay(1000);
-  digitalWrite(GLED, LOW);
-  digitalWrite(RLED, LOW);
+  digitalWrite(GLED, HIGH);
+  digitalWrite(RLED, HIGH
+
+
+              );
 }
 
 // ================================================================
@@ -194,14 +202,13 @@ void loop() {
 
   if (ay > 30000 || launch == true && landed == false) {
 
-    if (launch == 0) {
-      Serial.println(F("LAUNCH! ! !"));
+    if (launch == false) {
+      Serial.println(F("LAUNCH!"));
       //launchTime = millis();
       //delay(1000);
     }
-
-
-    launch = 1;
+    
+    launch = true;
 
     //APOGEE DETECTION PROGRAM
 
@@ -260,7 +267,7 @@ void loop() {
       if (currentMillis - previousMillis2 >= 1000) {
         if (est_alt - lastAlt <= -0.5) {
           Serial.println("PASS 1");
-         
+
           //Pass 2:
           currentMillis = millis();
           if (currentMillis - previousMillis2 >= 1000) {
@@ -272,7 +279,7 @@ void loop() {
               Serial.println("Pyro");
               pyro = true;
 
-            } else{
+            } else {
               lastAlt = est_alt;
             }
             previousMillis2 = currentMillis;
@@ -296,14 +303,10 @@ void loop() {
 
     Serial.println(F("pyro"));
     digitalWrite(RLED, HIGH);
+    //digitalWrite(pyroPin, HIGH); //FIRE!!
     tone(buzzer, 2500, 1000);
-    currentMillis = millis();
 
-    if (currentMillis - previousMillis >= 2000) {
-      pyroFired = true;
-
-      previousMillis = currentMillis;
-    }
+    pyroFired = true;
 
   }
 
@@ -319,10 +322,8 @@ void loop() {
   // }
 
   //Flight Logs
-
   if (launch == true && landed == false) {
-    //Flight Logs
-
+    
     Write();
     sd_count++;
 
@@ -504,8 +505,6 @@ void Write() {
 
   if (myFile) {
 
-
-
     //Writing in SD Card!
     myFile.print(millis());
     myFile.print(",");
@@ -548,14 +547,16 @@ void Write() {
 
 void RED()
 {
-  digitalWrite(RLED, HIGH);
+  digitalWrite(GLED, HIGH);
+
+  digitalWrite(RLED, LOW);
   tone(buzzer, 2500, 100);
   delay(200);
-  digitalWrite(RLED, LOW);
+  digitalWrite(RLED, HIGH);
 
   tone(buzzer, 2500, 100);
   delay(200);
-  digitalWrite(RLED, HIGH);
+  digitalWrite(RLED, LOW);
 
   tone(buzzer, 2000, 100);
   delay(500);
@@ -570,28 +571,36 @@ void GREEN() {
   if (currentMillis - previousMillis > interval) {
     previousMillis = currentMillis;
 
-    digitalWrite(GLED, HIGH);
+    digitalWrite(GLED, LOW);
     tone(buzzer, 2500, 100);
   }
   else {
-    digitalWrite(GLED, LOW);
+    digitalWrite(GLED, HIGH);
   }
 }
 
 void LAND_SIG() {
-  //Everything is fine.. signal.
-  unsigned long interval = 100;
-  unsigned long currentMillis = millis();
+  //Landed
 
-  if (currentMillis - previousMillis > interval) {
-    previousMillis = currentMillis;
+  digitalWrite(RLED, HIGH);
 
-    digitalWrite(GLED, HIGH);
-    tone(buzzer, 2500, 100);
-  }
-  else {
-    digitalWrite(GLED, LOW);
-  }
+  digitalWrite(GLED, LOW);
+  digitalWrite(BLED, HIGH);
+  tone(buzzer, 2500, 300);
+  delay(100);
+  digitalWrite(BLED, LOW);
+  digitalWrite(GLED, HIGH);
+  tone(buzzer, 2000, 300);
+  delay(100);
+
+  digitalWrite(GLED, LOW);
+  digitalWrite(BLED, HIGH);
+  tone(buzzer, 2500, 300);
+  delay(500);
+  digitalWrite(BLED, LOW);
+  digitalWrite(GLED, HIGH);
+  tone(buzzer, 2000, 300);
+  delay(500);
 }
 
 void get_alt() {
