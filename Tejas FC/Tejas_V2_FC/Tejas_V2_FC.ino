@@ -15,14 +15,15 @@
 //#define DMP_MOD
 #define SERIAL_DEBUG
 //#define MPU_CALBIRATION
+//#define SOUND
 // =============================
 // == Include and Define Vars ==
 //==============================
 
 //Header Files
-//#include "i2c.h"
-#include "Adafruit_BMP280.h"
+#include "I2Cdev.h"
 #include "MPU6050.h"
+#include "Adafruit_BMP280.h"
 #include <Wire.h>
 #include "SimpleKalmanFilter.h"
 #include <SD.h>
@@ -42,13 +43,14 @@
 //Timers Vars
 unsigned long previousMillis = 0;
 unsigned long previousMillis2 = 0;
+unsigned long landprev = 0;
 unsigned long currentMillis;
 bool launch = 0;
 bool pyro = false;
 bool pyroFired = false;
 bool landed = false;
 bool ABORT = false;
-
+bool landcheck = false;
 int lastAlt = 0;
 
 // =============================================
@@ -59,14 +61,20 @@ MPU6050 accelgyro;
 
 int16_t ax, ay, az;
 int16_t gx, gy, gz;
+int8_t threshold, count;
 
+float temp;
+bool zero_detect;
+bool TurnOnZI = false;
+
+bool XnegMD, XposMD, YnegMD, YposMD, ZnegMD, ZposMD;
 // =============================================
 // ===              BAROMETER                ===
 // =============================================
 
 Adafruit_BMP280 bmp280; // I2C
-SimpleKalmanFilter pressureKalmanFilter(1, 1, 0.01);
-
+//SimpleKalmanFilter pressureKalmanFilter(1, 1, 0.01);
+const int sealvl = 1013.5;
 static float alt;
 float est_alt;
 float temperature;
@@ -89,6 +97,7 @@ void setup() {
 
   Serial.begin(38400);
 
+  #ifdef SOUND
   //Startup Sound
   tone(buzzer, 2500, 300);
   delay(1000);
@@ -100,7 +109,7 @@ void setup() {
   tone(buzzer, 2500, 300);
   delay(1000);
   delay(2000);
-
+  #endif
   // configure LED for output
   pinMode(RLED, OUTPUT);
   pinMode(GLED, OUTPUT);
@@ -113,15 +122,6 @@ void setup() {
   digitalWrite(pyroPin, LOW);
 
 
-  Serial.println(FreeRam()); //set a threshold for that.
-
-  //PASS 1 -- confirm the size.
-  if (FreeRam() < 275) {
-    Serial.println(F("RAM-0"));
-    RED();
-    while (1);
-  }
-
   // PASS 2: Initialize SD Module
   initializeSD();
 
@@ -132,42 +132,48 @@ void setup() {
   //PASS 3: Initialize Baromter
   initializeBMP();
 
-  //PASS 4: Pyro Check
+  //PASS 4: Check for RAM
+  Serial.println(FreeRam()); //set a threshold for that.
+
+  if (FreeRam() < 275) {
+    Serial.println(F("RAM-0"));
+    RED();
+    while (1);
+  }
+
+  //PASS 5: Pyro Check
   if ( pyroPin == true) {
     RED();
     while (1);
   }
 
   //Get baseline alt
-  float sum = 0;
-  digitalWrite(GLED, LOW);
-  delay(5000);
-  digitalWrite(GLED, HIGH);
+  // float sum = 0;
+  // digitalWrite(GLED, LOW);
+  // delay(5000);
+  // digitalWrite(GLED, HIGH);
 
-  for (int i = 0; i < 30; i++) {
-    digitalWrite(GLED, HIGH);
-    digitalWrite(RLED, LOW);
+  // for (int i = 0; i < 30; i++) {
+  //   digitalWrite(GLED, HIGH);
+  //   digitalWrite(RLED, LOW);
 
-    delay(100);
+  //   delay(100);
 
-    digitalWrite(GLED, LOW);
-    digitalWrite(RLED, HIGH);
+  //   digitalWrite(GLED, LOW);
+  //   digitalWrite(RLED, HIGH);
 
-    bmp280.readAltitude(1018.00);
-    sum += base_alt;
-    Serial.println(base_alt);
-  }
+  //   bmp280.readAltitude(sealvl);
+  //   sum += base_alt;
+  //   Serial.println(pascal);
+  // }
 
-  base_alt = sum / 30.0;
-  Serial.print(F("BASEH: "));
-  Serial.println(base_alt);
+  // base_alt = sum / 30.0;
+  // Serial.print(F("BASEH: "));
+  // Serial.println(base_alt);
 
-  delay(1000);
-  digitalWrite(GLED, HIGH);
-  digitalWrite(RLED, HIGH
-
-
-              );
+  // delay(1000);
+  // digitalWrite(GLED, HIGH);
+  // digitalWrite(RLED, HIGH);
 }
 
 // ================================================================
@@ -193,27 +199,23 @@ void loop() {
      Flight Log
   */
 
-
   motion();
+  get_alt();
 
-  if (launch == 0) {
-    //Serial.println(ay);
-  }
 
-  if (ay > 30000 || launch == true && landed == false) {
+  if (ax/16384. > 1.5 || launch == true && landed == false) {
+    Serial.println(F("LAUNCH!"));
 
-    if (launch == false) {
-      Serial.println(F("LAUNCH!"));
-      //launchTime = millis();
-      //delay(1000);
-    }
-    
+    // if (launch == false) {
+    //   Serial.println(F("LAUNCH!"));
+    //   //launchTime = millis();
+    //   //delay(1000);
+    // }
+
     launch = true;
 
     //APOGEE DETECTION PROGRAM
 
-
-    get_alt();
 
     //Apogee V1
 
@@ -258,43 +260,43 @@ void loop() {
 
     //Apogee V2:
     //Continous Check
-    if (est_alt - lastAlt <= -0.5 && pyro == false && launch == true && pyroFired == false) {
+    // if (est_alt - lastAlt <= -0.5 && pyro == false && launch == true && pyroFired == false) {
 
-      Serial.println("PASS 1");
-      //Pass 1:
-      currentMillis = millis();
+    //   Serial.println("PASS 1");
+    //   //Pass 1:
+    //   currentMillis = millis();
 
-      if (currentMillis - previousMillis2 >= 1000) {
-        if (est_alt - lastAlt <= -0.5) {
-          Serial.println("PASS 1");
+    //   if (currentMillis - previousMillis2 >= 1000) {
+    //     if (est_alt - lastAlt <= -0.5) {
+    //       Serial.println("PASS 1");
 
-          //Pass 2:
-          currentMillis = millis();
-          if (currentMillis - previousMillis2 >= 1000) {
+    //       //Pass 2:
+    //       currentMillis = millis();
+    //       if (currentMillis - previousMillis2 >= 1000) {
 
-            //Pass 3:
-            if (est_alt - lastAlt <= -0.5) {
+    //         //Pass 3:
+    //         if (est_alt - lastAlt <= -0.5) {
 
-              //final Pass
-              Serial.println("Pyro");
-              pyro = true;
+    //           //final Pass
+    //           Serial.println("Pyro");
+    //           pyro = true;
 
-            } else {
-              lastAlt = est_alt;
-            }
-            previousMillis2 = currentMillis;
-          }
+    //         } else {
+    //           lastAlt = est_alt;
+    //         }
+    //         previousMillis2 = currentMillis;
+    //       }
 
-        } else {
-          lastAlt = est_alt;
-        }
+    //     } else {
+    //       lastAlt = est_alt;
+    //     }
 
-        previousMillis2 = currentMillis;
-      }
+    //     previousMillis2 = currentMillis;
+    //   }
 
-    } else {
-      lastAlt = est_alt;
-    }
+    // } else {
+    //   lastAlt = est_alt;
+    // }
 
 
   }
@@ -313,17 +315,28 @@ void loop() {
 
   //&& pyro == true && pyroFired == true
   //( 0 < est_alt - base_alt < 3 )
+  Serial.println(landcheck);
 
-  // if (( 0 < est_alt - base_alt < 2 ) && launch == true) {
-  //   //Land PROGRAM
-  //   landed = true;
+  if (ax/16384. > -0.5 && ax/16384. < 0.5 && launch == true && landed == true) {
+  //MPU landed
+  landcheck = true;    
+  }
 
-  //   Serial.println("LANDED!");
-  // }
+  if(millis() - landprev > 2000 && landcheck == true && landed == true) {
+    
+    if (ax/16384. > -0.5 && ax/16384. < 0.5 
+      && ay/16384. > -0.5 && ay/16384. < 0.5 && landprev != 0) {
+      landed = true;
+      
+      Serial.println("LANDED!");
+    }
+
+    landprev = millis();
+  } 
 
   //Flight Logs
   if (launch == true && landed == false) {
-    
+    Serial.println("writing");
     Write();
     sd_count++;
 
@@ -332,13 +345,12 @@ void loop() {
       sd_count = 0;
       Serial.println("FLUSH");
     }
-
-    if (landed == true) {
-      myFile.close();
-    }
-
+  }  
+  if (launch == true && landed == true) {
+    myFile.close();
+    Serial.println("FClose");
   }
-
+  
 }//voidloop end
 
 
@@ -387,6 +399,12 @@ void initializeSD() {
     myFile.print("ay");
     myFile.print(",");
     myFile.print("az");
+    myFile.print(",");
+    myFile.print("gx");
+    myFile.print(",");
+    myFile.print("gy");
+    myFile.print(",");
+    myFile.print("gz");
     myFile.print(",");
     myFile.print("LaunchTime");
     myFile.print(",");
@@ -440,39 +458,43 @@ void initializeBMP() {
 // ==========================================================
 
 void initializeMPU() {
-  // initialize device
-  Serial.println("Initializing I2C devices...");
+  Wire.begin();
   accelgyro.initialize();
+  // Serial.println(accelgyro.testConnection() ? "M1" : RED(););
 
-  // verify connection
-  Serial.println("Testing device connections...");
-  Serial.println(accelgyro.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+  accelgyro.setAccelerometerPowerOnDelay(3);
+  accelgyro.setIntZeroMotionEnabled(TurnOnZI);
+  accelgyro.setDHPFMode(1);
+  accelgyro.setMotionDetectionThreshold(2);
+  accelgyro.setZeroMotionDetectionThreshold(2);
+  accelgyro.setZeroMotionDetectionDuration(1);
 
-#ifdef MPU_CALBIRATION
-  Serial.println("Updating internal sensor offsets...");
-  // -76	-2359	1688	0	0	0
-  Serial.print(accelgyro.getXAccelOffset()); Serial.print("\t"); // -76
-  Serial.print(accelgyro.getYAccelOffset()); Serial.print("\t"); // -2359
-  Serial.print(accelgyro.getZAccelOffset()); Serial.print("\t"); // 1688
-  Serial.print(accelgyro.getXGyroOffset()); Serial.print("\t"); // 0
-  Serial.print(accelgyro.getYGyroOffset()); Serial.print("\t"); // 0
-  Serial.print(accelgyro.getZGyroOffset()); Serial.print("\t"); // 0
-  Serial.print("\n");
-  // accelgyro.setXGyroOffset(220);
-  // accelgyro.setYGyroOffset(76);
-  // accelgyro.setZGyroOffset(-85);
-  Serial.print(accelgyro.getXAccelOffset()); Serial.print("\t"); // -76
-  Serial.print(accelgyro.getYAccelOffset()); Serial.print("\t"); // -2359
-  Serial.print(accelgyro.getZAccelOffset()); Serial.print("\t"); // 1688
-  Serial.print(accelgyro.getXGyroOffset()); Serial.print("\t"); // 0
-  Serial.print(accelgyro.getYGyroOffset()); Serial.print("\t"); // 0
-  Serial.print(accelgyro.getZGyroOffset()); Serial.print("\t"); // 0
-  Serial.print("\n");
-#endif
+  //pinMode(LED_PIN, OUTPUT);
 }
 
 void motion() {
-  accelgyro.getAcceleration(&ax, &ay, &az);
+  accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+
+  XnegMD = accelgyro.getXNegMotionDetected();
+  XposMD = accelgyro.getXPosMotionDetected();
+  YnegMD = accelgyro.getYNegMotionDetected();
+  YposMD = accelgyro.getYPosMotionDetected();
+  ZnegMD = accelgyro.getZNegMotionDetected();
+  ZposMD = accelgyro.getZPosMotionDetected();
+
+  zero_detect = accelgyro.getIntMotionStatus();
+  threshold = accelgyro.getZeroMotionDetectionThreshold();
+
+  //Serial.print(temp);Serial.print(",");
+  Serial.print(ax/16384.); Serial.print(",");
+  Serial.print(ay/16384.); Serial.print(",");
+  Serial.println(az/16384.); Serial.print(",");
+  // Serial.print(gx/131.072); Serial.print(",");
+  // Serial.print(gy/131.072); Serial.print(",");
+  // Serial.print(gz/131.072); Serial.print(",");
+  // Serial.print(zero_detect); Serial.print(",");
+  // Serial.print(XnegMD); Serial.print(",");
+  // Serial.println(XposMD);
 }
 
 // ================================================================
@@ -514,11 +536,17 @@ void Write() {
     myFile.print(",");
     myFile.print(est_alt);
     myFile.print(",");
-    myFile.print(ax);
+    myFile.print(ax/16384.);
     myFile.print(",");
-    myFile.print(ay);
+    myFile.print(ay/16384.);
     myFile.print(",");
-    myFile.print(az);
+    myFile.print(az/16384.);
+    myFile.print(",");
+    myFile.print(gx/131.072);
+    myFile.print(",");
+    myFile.print(gy/131.072);
+    myFile.print(",");
+    myFile.print(gz/131.072);
     myFile.print(",");
     myFile.print(launch);
     myFile.print(",");
@@ -550,17 +578,25 @@ void RED()
   digitalWrite(GLED, HIGH);
 
   digitalWrite(RLED, LOW);
+  #ifdef SOUND
   tone(buzzer, 2500, 100);
+  #endif
   delay(200);
   digitalWrite(RLED, HIGH);
 
+  #ifdef SOUND 
   tone(buzzer, 2500, 100);
+  #endif
   delay(200);
   digitalWrite(RLED, LOW);
-
+ 
+  #ifdef SOUND 
   tone(buzzer, 2000, 100);
+  #endif
   delay(500);
+  #ifdef SOUND 
   tone(buzzer, 2000, 100);
+  #endif
 }
 
 void GREEN() {
@@ -572,7 +608,9 @@ void GREEN() {
     previousMillis = currentMillis;
 
     digitalWrite(GLED, LOW);
+    #ifdef SOUND
     tone(buzzer, 2500, 100);
+    #endif
   }
   else {
     digitalWrite(GLED, HIGH);
@@ -586,20 +624,28 @@ void LAND_SIG() {
 
   digitalWrite(GLED, LOW);
   digitalWrite(BLED, HIGH);
+  #ifdef SOUND 
   tone(buzzer, 2500, 300);
+  #endif
   delay(100);
   digitalWrite(BLED, LOW);
   digitalWrite(GLED, HIGH);
+  #ifdef SOUND 
   tone(buzzer, 2000, 300);
+  #endif
   delay(100);
 
   digitalWrite(GLED, LOW);
   digitalWrite(BLED, HIGH);
+  #ifdef SOUND 
   tone(buzzer, 2500, 300);
+  #endif
   delay(500);
   digitalWrite(BLED, LOW);
   digitalWrite(GLED, HIGH);
+  #ifdef SOUND 
   tone(buzzer, 2000, 300);
+  #endif
   delay(500);
 }
 
@@ -609,5 +655,5 @@ void get_alt() {
 
   pascal = bmp280.readPressure();
 
-  est_alt = pressureKalmanFilter.updateEstimate(alt);
+  //est_alt = pressureKalmanFilter.updateEstimate(alt);
 }
