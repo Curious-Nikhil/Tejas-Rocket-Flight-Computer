@@ -202,7 +202,7 @@ void loop() {
   motion();
   get_alt();
 
-
+  //Detect if it's launch
   if (ax/16384. > 1.5 || launch == true && landed == false) {
     Serial.println(F("LAUNCH!"));
 
@@ -315,14 +315,17 @@ void loop() {
 
   //&& pyro == true && pyroFired == true
   //( 0 < est_alt - base_alt < 3 )
-  Serial.println(landcheck);
+  Serial.println("launch ");
+  Serial.print(launch);
+  Serial.println("landed ");
+  Serial.println(landed);
 
-  if (ax/16384. > -0.5 && ax/16384. < 0.5 && launch == true && landed == true) {
-  //MPU landed
-  landcheck = true;    
-  }
 
-  if(millis() - landprev > 2000 && landcheck == true && landed == true) {
+
+  Serial.println(millis() - landprev);
+
+  //CHECK if it has landed.
+  if(ax/16384. > -0.5 && ax/16384. < 0.5 && millis() - landprev > 6000 && landed == false) {
     
     if (ax/16384. > -0.5 && ax/16384. < 0.5 
       && ay/16384. > -0.5 && ay/16384. < 0.5 && landprev != 0) {
@@ -486,9 +489,9 @@ void motion() {
   threshold = accelgyro.getZeroMotionDetectionThreshold();
 
   //Serial.print(temp);Serial.print(",");
-  Serial.print(ax/16384.); Serial.print(",");
-  Serial.print(ay/16384.); Serial.print(",");
-  Serial.println(az/16384.); Serial.print(",");
+  // Serial.print(ax/16384.); Serial.print(",");
+  // Serial.print(ay/16384.); Serial.print(",");
+  // Serial.println(az/16384.); Serial.print(",");
   // Serial.print(gx/131.072); Serial.print(",");
   // Serial.print(gy/131.072); Serial.print(",");
   // Serial.print(gz/131.072); Serial.print(",");
