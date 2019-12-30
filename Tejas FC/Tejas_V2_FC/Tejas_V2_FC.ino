@@ -49,9 +49,8 @@ bool launch = 0;
 bool pyro = false;
 bool pyroFired = false;
 bool landed = false;
-bool ABORT = false;
-bool landcheck = false;
-int lastAlt = 0;
+//bool ABORT = false;
+int lcc = 0; // land check coutner
 
 // =============================================
 // ===              MPU Vars                 ===
@@ -63,6 +62,9 @@ int16_t ax, ay, az;
 int16_t gx, gy, gz;
 int8_t threshold, count;
 
+double roll = 0.00;
+double pitch = 0.00;
+
 float temp;
 bool zero_detect;
 bool TurnOnZI = false;
@@ -73,10 +75,11 @@ bool XnegMD, XposMD, YnegMD, YposMD, ZnegMD, ZposMD;
 // =============================================
 
 Adafruit_BMP280 bmp280; // I2C
-//SimpleKalmanFilter pressureKalmanFilter(1, 1, 0.01);
-const int sealvl = 1013.5;
+SimpleKalmanFilter pressureKalmanFilter(1, 1, 0.01);
+const float sealvl = 1013.5;
 static float alt;
 float est_alt;
+float lastAlt = 0;
 float temperature;
 float pascal;
 float base_alt;
@@ -215,90 +218,46 @@ void loop() {
     launch = true;
 
     //APOGEE DETECTION PROGRAM
-
-
     //Apogee V1
 
-    /**
-      if (est_alt - lastAlt <= -0.5 && pyro == false && launch == true && pyroFired == false) {
-      //check for drop
+    //Serial.println(est_alt);
+    //Serial.println(est_alt - lastAlt);
+
+    if (est_alt - lastAlt <= -0.5 && pyro == false && launch == true && pyroFired == false) {
+    //check for drop
+    //Store time of Apogee Trigger 1
+    delay(20);
+    get_alt();
+    Serial.println(F("P1"));
+    tone(buzzer, 2500, 200);
+
+    if (est_alt - lastAlt <= -1) {
+      //check for  drop
       //Store time of Apogee Trigger 1
+
       delay(20);
       get_alt();
-      Serial.println(F("P1"));
+      Serial.println(F("P2"));
       tone(buzzer, 2500, 200);
 
-      if (est_alt - lastAlt <= -1 && pyro == false && launch == true && pyroFired == false) {
-        //check for  drop
-        //Store time of Apogee Trigger 1
-
-        delay(20);
-        get_alt();
-        Serial.println(F("P2"));
+      if (est_alt - lastAlt <= -2) {
+        //PASS 3
+        //Store time of Apogee Pyro Fire
+        //Fire Pyros!
+        pyro = true;
+        Serial.println(F("P3"));
         tone(buzzer, 2500, 200);
 
-        if (est_alt - lastAlt <= -2 && pyro == false && launch == true && pyroFired == false) {
-          //PASS 3
-          //Store time of Apogee Pyro Fire
-          //Fire Pyros!
-          pyro = true;
-          Serial.println(F("P3"));
-          tone(buzzer, 2500, 200);
-
-        } else {
-          lastAlt = est_alt;
-        }
       } else {
         lastAlt = est_alt;
       }
-      }
-      else {
+    } else {
       lastAlt = est_alt;
-      }
-
-    **/
-
-    //Apogee V2:
-    //Continous Check
-    // if (est_alt - lastAlt <= -0.5 && pyro == false && launch == true && pyroFired == false) {
-
-    //   Serial.println("PASS 1");
-    //   //Pass 1:
-    //   currentMillis = millis();
-
-    //   if (currentMillis - previousMillis2 >= 1000) {
-    //     if (est_alt - lastAlt <= -0.5) {
-    //       Serial.println("PASS 1");
-
-    //       //Pass 2:
-    //       currentMillis = millis();
-    //       if (currentMillis - previousMillis2 >= 1000) {
-
-    //         //Pass 3:
-    //         if (est_alt - lastAlt <= -0.5) {
-
-    //           //final Pass
-    //           Serial.println("Pyro");
-    //           pyro = true;
-
-    //         } else {
-    //           lastAlt = est_alt;
-    //         }
-    //         previousMillis2 = currentMillis;
-    //       }
-
-    //     } else {
-    //       lastAlt = est_alt;
-    //     }
-
-    //     previousMillis2 = currentMillis;
-    //   }
-
-    // } else {
-    //   lastAlt = est_alt;
-    // }
-
-
+    }
+    }
+    else {
+    lastAlt = est_alt;
+    }
   }
 
   if (pyro == true && launch == true && pyroFired == false) {
@@ -312,23 +271,23 @@ void loop() {
 
   }
 
-
-  //&& pyro == true && pyroFired == true
-  //( 0 < est_alt - base_alt < 3 )
-  Serial.println("launch ");
+  Serial.print("launch ");
   Serial.print(launch);
-  Serial.println("landed ");
-  Serial.println(landed);
-
-
-
-  Serial.println(millis() - landprev);
+  Serial.print("landed ");
+  Serial.print(landed);
+  Serial.print(",");
+  Serial.print(millis() - landprev);
+  Serial.print(",");
+  Serial.println(lcc);
 
   //CHECK if it has landed.
-  if(ax/16384. > -0.5 && ax/16384. < 0.5 && millis() - landprev > 6000 && landed == false) {
+  //PASS 1
+  if(ax/16384. > -0.5 && ax/16384. < 0.5 && ay/16384. > -0.5 && ay/16384. < 0.5 && millis() - landprev > 2000 && launch == true && landed == false) {
     
+    lcc++; // land check coutner
+    //PASS 2
     if (ax/16384. > -0.5 && ax/16384. < 0.5 
-      && ay/16384. > -0.5 && ay/16384. < 0.5 && landprev != 0) {
+      && ay/16384. > -0.5 && ay/16384. < 0.5 && landprev != 0 && lcc == 5) {
       landed = true;
       
       Serial.println("LANDED!");
@@ -389,9 +348,9 @@ void initializeSD() {
   if (myFile) {
     //Print Header Files  - - alt, pascal, est_alt, mpuPitch, mpuRoll, mpuYaw, OutputX, OutputY
 
-    myFile.print("Time");
+    myFile.print("t");
     myFile.print(",");
-    myFile.print("Pascal");
+    myFile.print("p"); 
     myFile.print(",");
     myFile.print("alt");
     myFile.print(",");
@@ -409,11 +368,17 @@ void initializeSD() {
     myFile.print(",");
     myFile.print("gz");
     myFile.print(",");
-    myFile.print("LaunchTime");
+    myFile.print("roll");
     myFile.print(",");
-    myFile.print("ApoTime");
+    myFile.print("pitch");
     myFile.print(",");
-    myFile.println("LandTime");
+    myFile.print("RAM");
+    myFile.print(",");
+    myFile.print("Launch");
+    myFile.print(",");
+    myFile.print("Apo");
+    myFile.print(",");
+    myFile.println("Land");
 
     myFile.close();
     Serial.println(F("Fin-1"));
@@ -498,6 +463,14 @@ void motion() {
   // Serial.print(zero_detect); Serial.print(",");
   // Serial.print(XnegMD); Serial.print(",");
   // Serial.println(XposMD);
+
+  roll = atan2(ay/16384., az/16384.)*57.3;
+  pitch = atan2((-ax/16384.),sqrt(ay/16384.*ay/16384. + az/16384.*az/16384.))*57.3;
+
+  // Serial.print(roll);
+  // Serial.print(",");
+  // Serial.println(pitch);
+
 }
 
 // ================================================================
@@ -526,8 +499,6 @@ boolean loadSDFile() {
 void Write() {
   myFile = SD.open(filename, FILE_WRITE);
 
-  //  Serial.println(FreeRam());
-
   if (myFile) {
 
     //Writing in SD Card!
@@ -550,6 +521,12 @@ void Write() {
     myFile.print(gy/131.072);
     myFile.print(",");
     myFile.print(gz/131.072);
+    myFile.print(",");
+    myFile.print(roll);
+    myFile.print(",");
+    myFile.print(pitch);
+    myFile.print(",");
+    myFile.print(FreeRam());
     myFile.print(",");
     myFile.print(launch);
     myFile.print(",");
@@ -654,9 +631,9 @@ void LAND_SIG() {
 
 void get_alt() {
 
-  alt = bmp280.readAltitude(1013.5);
+  alt = bmp280.readAltitude(sealvl);
 
   pascal = bmp280.readPressure();
 
-  //est_alt = pressureKalmanFilter.updateEstimate(alt);
+  est_alt = pressureKalmanFilter.updateEstimate(alt);
 }
