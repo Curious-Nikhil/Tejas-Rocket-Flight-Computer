@@ -13,9 +13,9 @@
 
 //#define SERVO_MOD
 //#define DMP_MOD
-#define SERIAL_DEBUG
+//#define SERIAL_DEBUG
 //#define MPU_CALBIRATION
-//#define SOUND
+#define SOUND
 // =============================
 // == Include and Define Vars ==
 //==============================
