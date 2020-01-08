@@ -321,8 +321,8 @@ void loop()
 
       if (mode == 2) {
 
-        scale.power_up();
-        scale.set_scale(calibration_factor);
+        //scale.power_up();
+        //scale.set_scale(calibration_factor);
         scale.tare();
 
         //delay(1000);
