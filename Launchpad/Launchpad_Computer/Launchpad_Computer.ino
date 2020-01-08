@@ -114,7 +114,7 @@ void setup()
     //Check if Loadcel is working.
     scale.begin(DOUT, CLK);
 
-    scale.set_scale();
+    scale.set_scale(calibration_factor);
     scale.tare();
     long reading;
     Serial.println("Loadcel is set up");
@@ -132,12 +132,12 @@ void setup()
   }
   if (mode == 2) {
     //SD CARD initialization
-    initializeSD();
+    //initializeSD();
 
     //Check if Loadcel is working.
     scale.begin(DOUT, CLK);
 
-    scale.set_scale();
+    scale.set_scale(calibration_factor);
     scale.tare();
     long reading;
     Serial.println("Loadcel is set up");
@@ -243,7 +243,7 @@ void loop()
     //Check for file and loadcell error
 
     if (mode == 2) {
-#ifdef LOADCELL_CHECK
+    #ifdef LOADCELL_CHECK
       if (myFile == 0 || scale.read() < 1000)
       {
         RED();
@@ -252,8 +252,8 @@ void loop()
       }
 
       Serial.println("Loadcel and SD Mod is set up");
-#endif
-    }
+      #endif
+      }
 
     currentMillis = millis();
 
@@ -270,7 +270,7 @@ void loop()
         digitalWrite(RLED, HIGH);
 
         if (mode == 2) {
-          myFile = SD.open(filename, FILE_WRITE);
+         // myFile = SD.open(filename, FILE_WRITE);
 
           scale.power_up();
           scale.set_scale(calibration_factor);
@@ -315,43 +315,25 @@ void loop()
       Serial.println("LAUNCH OFF");
       tone(buzzer, 4500, 2000);
       digitalWrite(RLED, HIGH);
-      digitalWrite(mos, HIGH);
+      //digitalWrite(mos, HIGH);
 
       previousMillis = 0;
 
       if (mode == 2) {
+
+        scale.power_up();
+        scale.set_scale(calibration_factor);
+        scale.tare();
+
+        //delay(1000);
         while (i < 100)
-
         {
-          scale.power_up();
-          scale.set_scale(calibration_factor);
-          scale.tare();
-          Serial.println(scale.read());
-          delay(1000);
-
           digitalWrite(mos, HIGH); // too dangerous.
 
-          Serial.println("While Loop");
-          //Time Instance
-          currentMillis = millis();
-
-          if (currentMillis - previousMillis >= period) {
-            previousMillis = currentMillis;
-
-            time_ms++;  //not exactly realtime millisceconds.
-          }
-
-          Serial.println(time_ms);
-          //Serial.println(scale.get_units(), 1);
-
-          //write to sd card
-
-          myFile.print(time_ms);
-          myFile.print(",");
-          myFile.println(scale.get_units(), 1);
-          Serial.print(time_ms);
-          Serial.print(",");
+         Serial.print(millis());
+         Serial.print(" ,");
           Serial.println(scale.get_units(), 1);
+          
           i++;
         }
       }
@@ -378,8 +360,8 @@ void loop()
       Fire_State = 1;
 
       if (mode == 2) {
-        myFile.close();
-        scale.power_down();
+        //myFile.close();
+        //scale.power_down();
         Serial.println("M2 - LAUNCH PROGRAM ENDS");
       }
 
