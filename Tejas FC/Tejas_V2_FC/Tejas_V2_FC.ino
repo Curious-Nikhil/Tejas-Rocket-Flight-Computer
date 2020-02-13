@@ -15,7 +15,7 @@
 //#define DMP_MOD
 //#define SERIAL_DEBUG
 //#define MPU_CALBIRATION
-#define SOUND
+//#define SOUND
 // =============================
 // == Include and Define Vars ==
 //==============================
@@ -51,7 +51,7 @@ bool pyroFired = false;
 bool landed = false;
 //bool ABORT = false;
 int lcc = 0; // land check coutner
-
+float fallr = -0.1;
 // =============================================
 // ===              MPU Vars                 ===
 // =============================================
@@ -207,7 +207,7 @@ void loop() {
 
   //Detect if it's launch
   if (ax/16384. > 1.5 || launch == true && landed == false) {
-    Serial.println(F("LAUNCH!"));
+    //Serial.println(F("LAUNCH!"));
 
     // if (launch == false) {
     //   Serial.println(F("LAUNCH!"));
@@ -223,24 +223,24 @@ void loop() {
     //Serial.println(est_alt);
     //Serial.println(est_alt - lastAlt);
 
-    if (est_alt - lastAlt <= -0.5 && pyro == false && launch == true && pyroFired == false) {
+    if (est_alt - lastAlt <= fallr && pyro == false && launch == true && pyroFired == false) {
     //check for drop
     //Store time of Apogee Trigger 1
-    delay(20);
+    delay(100);
     get_alt();
     Serial.println(F("P1"));
     tone(buzzer, 2500, 200);
 
-    if (est_alt - lastAlt <= -1) {
+    if (est_alt - lastAlt <= fallr) {
       //check for  drop
       //Store time of Apogee Trigger 1
 
-      delay(20);
+      delay(100);
       get_alt();
       Serial.println(F("P2"));
       tone(buzzer, 2500, 200);
 
-      if (est_alt - lastAlt <= -2) {
+      if (est_alt - lastAlt <= fallr) {
         //PASS 3
         //Store time of Apogee Pyro Fire
         //Fire Pyros!
@@ -271,14 +271,14 @@ void loop() {
 
   }
 
-  Serial.print("launch ");
-  Serial.print(launch);
-  Serial.print("landed ");
-  Serial.print(landed);
-  Serial.print(",");
-  Serial.print(millis() - landprev);
-  Serial.print(",");
-  Serial.println(lcc);
+  // Serial.print("launch ");
+  // Serial.print(launch);
+  // Serial.print("landed ");
+  // Serial.print(landed);
+  // Serial.print(",");
+  // Serial.print(millis() - landprev);
+  // Serial.print(",");
+  // Serial.println(lcc);
 
   //CHECK if it has landed.
   //PASS 1
@@ -290,7 +290,7 @@ void loop() {
       && ay/16384. > -0.5 && ay/16384. < 0.5 && landprev != 0 && lcc == 5) {
       landed = true;
       
-      Serial.println("LANDED!");
+      //Serial.println("LANDED!");
     }
 
     landprev = millis();
@@ -298,19 +298,19 @@ void loop() {
 
   //Flight Logs
   if (launch == true && landed == false) {
-    Serial.println("writing");
+    //Serial.println("writing");
     Write();
     sd_count++;
 
     if (sd_count > 100) {
       myFile.flush();
       sd_count = 0;
-      Serial.println("FLUSH");
+      //Serial.println("FLUSH");
     }
   }  
   if (launch == true && landed == true) {
     myFile.close();
-    Serial.println("FClose");
+    //Serial.println("FClose");
   }
   
 }//voidloop end
