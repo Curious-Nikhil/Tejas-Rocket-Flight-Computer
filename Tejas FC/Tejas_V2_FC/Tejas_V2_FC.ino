@@ -15,7 +15,7 @@
 //#define DMP_MOD
 //#define SERIAL_DEBUG
 //#define MPU_CALBIRATION
-//#define SOUND
+#define SOUND
 // =============================
 // == Include and Define Vars ==
 //==============================
@@ -35,7 +35,7 @@
 #define GLED 7// Green LED
 #define BLED 6 // BLue LED
 #define buzzer 5
-#define pyroPin 9
+#define pyroPin 10
 // =============================================
 // ===          MISC Global Vars             ===
 // =============================================
@@ -51,7 +51,8 @@ bool pyroFired = false;
 bool landed = false;
 //bool ABORT = false;
 int lcc = 0; // land check coutner
-float fallr = -0.1;
+float fallr = -0.01;
+int adelay = 100; //ms
 // =============================================
 // ===              MPU Vars                 ===
 // =============================================
@@ -149,34 +150,6 @@ void setup() {
     RED();
     while (1);
   }
-
-  //Get baseline alt
-  // float sum = 0;
-  // digitalWrite(GLED, LOW);
-  // delay(5000);
-  // digitalWrite(GLED, HIGH);
-
-  // for (int i = 0; i < 30; i++) {
-  //   digitalWrite(GLED, HIGH);
-  //   digitalWrite(RLED, LOW);
-
-  //   delay(100);
-
-  //   digitalWrite(GLED, LOW);
-  //   digitalWrite(RLED, HIGH);
-
-  //   bmp280.readAltitude(sealvl);
-  //   sum += base_alt;
-  //   Serial.println(pascal);
-  // }
-
-  // base_alt = sum / 30.0;
-  // Serial.print(F("BASEH: "));
-  // Serial.println(base_alt);
-
-  // delay(1000);
-  // digitalWrite(GLED, HIGH);
-  // digitalWrite(RLED, HIGH);
 }
 
 // ================================================================
@@ -220,13 +193,10 @@ void loop() {
     //APOGEE DETECTION PROGRAM
     //Apogee V1
 
-    //Serial.println(est_alt);
-    //Serial.println(est_alt - lastAlt);
-
     if (est_alt - lastAlt <= fallr && pyro == false && launch == true && pyroFired == false) {
     //check for drop
     //Store time of Apogee Trigger 1
-    delay(100);
+    delay(adelay);
     get_alt();
     Serial.println(F("P1"));
     tone(buzzer, 2500, 200);
@@ -235,7 +205,7 @@ void loop() {
       //check for  drop
       //Store time of Apogee Trigger 1
 
-      delay(100);
+      delay(adelay);
       get_alt();
       Serial.println(F("P2"));
       tone(buzzer, 2500, 200);
@@ -264,21 +234,12 @@ void loop() {
 
     Serial.println(F("pyro"));
     digitalWrite(RLED, HIGH);
-    //digitalWrite(pyroPin, HIGH); //FIRE!!
+    digitalWrite(pyroPin, HIGH); //FIRE!!
     tone(buzzer, 2500, 1000);
 
     pyroFired = true;
 
   }
-
-  // Serial.print("launch ");
-  // Serial.print(launch);
-  // Serial.print("landed ");
-  // Serial.print(landed);
-  // Serial.print(",");
-  // Serial.print(millis() - landprev);
-  // Serial.print(",");
-  // Serial.println(lcc);
 
   //CHECK if it has landed.
   //PASS 1
@@ -452,17 +413,6 @@ void motion() {
 
   zero_detect = accelgyro.getIntMotionStatus();
   threshold = accelgyro.getZeroMotionDetectionThreshold();
-
-  //Serial.print(temp);Serial.print(",");
-  // Serial.print(ax/16384.); Serial.print(",");
-  // Serial.print(ay/16384.); Serial.print(",");
-  // Serial.println(az/16384.); Serial.print(",");
-  // Serial.print(gx/131.072); Serial.print(",");
-  // Serial.print(gy/131.072); Serial.print(",");
-  // Serial.print(gz/131.072); Serial.print(",");
-  // Serial.print(zero_detect); Serial.print(",");
-  // Serial.print(XnegMD); Serial.print(",");
-  // Serial.println(XposMD);
 
   roll = atan2(ay/16384., az/16384.)*57.3;
   pitch = atan2((-ax/16384.),sqrt(ay/16384.*ay/16384. + az/16384.*az/16384.))*57.3;
