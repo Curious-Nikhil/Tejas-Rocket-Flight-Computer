@@ -5,7 +5,7 @@
 clear all;
 close all;
 
-M = 0.350; %Kg
+M = 0.500; %Kg
 rho = 1.2;
 Cd = 0.75;
 g = 9.8;
@@ -15,6 +15,7 @@ A = pi*r^2;
 k = 0.5*rho*Cd*A; %Wind Resistance Factor
 T_Imp = 31.52*0.9; %10% Error
 Bt = 3;
+
 F = M*0.98;
 
 q = sqrt((T - M*g)/k);
@@ -40,6 +41,10 @@ disp('Apogee')
 disp(H)
 disp('Flight Time')
 disp(Flight_t)
+
+
+
+
 
 % boost phase by adding
 % the empty weight of the rocket,
