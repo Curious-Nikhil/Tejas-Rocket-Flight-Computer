@@ -52,7 +52,6 @@ void setup()
   pinMode(RLED, OUTPUT);
   pinMode(GLED, OUTPUT);
   pinMode(pushbutton, INPUT_PULLUP);
-  //attachInterrupt(5, ABORT, RISING);
 
 
   //Startup Sound
@@ -235,6 +234,15 @@ void loop()
     if (COUNTER_STATUS == 0 && BS_LOOP == 0) {
       Serial.println("FIRE BUTTON ENABLED");
       Serial.println("INITIATING LAUNCH PROGRAM! GODSPEED!");
+
+        for (int j =1; j<21 ; j++){
+
+          digitalWrite(GLED, HIGH);
+          tone(7, 2900, 100);
+          delay(1000);
+          digitalWrite(GLED, LOW);
+          tone(7, 2900, 100);
+        }
     }
 
     BS_LOOP = 1; // check for button loop to print above message.
@@ -517,3 +525,4 @@ void POST_LAUNCH() {
   digitalWrite(RLED, HIGH);
 
 }
+
