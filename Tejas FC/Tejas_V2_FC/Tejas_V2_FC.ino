@@ -1,5 +1,5 @@
 // =============================
-// == PHASE THREE Devs ====
+// == PHASE LAUNCH! ====
 //==============================
 
 /*Tejas V3 - @Nikhil Mishra
@@ -51,7 +51,7 @@ bool pyroFired = false;
 bool landed = false;
 //bool ABORT = false;
 int lcc = 0; // land check coutner
-float fallr = -0.01;
+float fallr = -0.02;
 int adelay = 100; //ms
 // =============================================
 // ===              MPU Vars                 ===
@@ -156,11 +156,10 @@ void setup() {
 // ===                    MAIN LOOP                            ===
 // ================================================================
 void loop() {
-  //Disable Pyros
-  digitalWrite(pyroPin, LOW);
 
   if (launch == false && pyro == false && landed == false) {
     GREEN();
+
   }
   else if (landed == true) {
     LAND_SIG();
@@ -230,14 +229,14 @@ void loop() {
     }
   }
 
-  if (pyro == true && launch == true && pyroFired == false) {
+  if (pyro == true && launch == true && pyroFired == false && landed == false) {
 
     Serial.println(F("pyro"));
     digitalWrite(RLED, HIGH);
     digitalWrite(pyroPin, HIGH); //FIRE!!
     tone(buzzer, 2500, 1000);
 
-    pyroFired = true;
+    //pyroFired = true;
 
   }
 
@@ -250,7 +249,8 @@ void loop() {
     if (ax/16384. > -0.5 && ax/16384. < 0.5 
       && ay/16384. > -0.5 && ay/16384. < 0.5 && landprev != 0 && lcc == 5) {
       landed = true;
-      
+      pyroFired = true; //disable pyro pin after landing
+      digitalWrite(pyroPin, LOW);
       //Serial.println("LANDED!");
     }
 
