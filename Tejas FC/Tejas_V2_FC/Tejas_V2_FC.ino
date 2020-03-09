@@ -2,20 +2,21 @@
 // == PHASE LAUNCH! ====
 //==============================
 
-/*Tejas V3 - @Nikhil Mishra
+/*TEJAS FC - V3 - @Nikhil Mishra
    https://curious-nikhil.github.io/
-   Tejas is a rocket computer
+   TEJAS FC is featured and fault talorent 
+   flight computer with Apogee Detection.
 */
+
 // =========================================
 // ==         CONFIGURATION              ==
 //==========================================
-
-
 //#define SERVO_MOD
 //#define DMP_MOD
 //#define SERIAL_DEBUG
 //#define MPU_CALBIRATION
 #define SOUND
+
 // =============================
 // == Include and Define Vars ==
 //==============================
