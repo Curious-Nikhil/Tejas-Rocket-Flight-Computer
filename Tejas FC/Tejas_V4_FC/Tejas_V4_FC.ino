@@ -233,13 +233,18 @@ void loop() {
     lastAlt = est_alt;
     }
   }
+  
+  Serial.println(pitch);
+  Serial.println((abs(pitch) < pitchabort) || (abs(pitch) > (pitchabort + 90)));
 
   //ABORT when pitched over 45 deg
-  if (launch == true && pyro == false && landed == false &&
-  (abs(pitch) < pitchabort) || (abs(pitch) > (pitchabort + 90))) {
+  if (ABORT == false && pyroFired == false && launch == true && pyro == false && landed == false && 
+  ((abs(pitch) < pitchabort) || (abs(pitch) > (pitchabort + 90)))) {
     ABORT = true;
     digitalWrite(pyroPin, HIGH); //FIRE!!
     pyroFired = true;
+    tone(buzzer, 2500, 300);
+
   }
 
   //Deploy Parachutes
